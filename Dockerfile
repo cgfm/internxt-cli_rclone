@@ -14,11 +14,14 @@ ENV RCLONE_CONFIG="/config/rclone.conf"
 ENV CRON_COMMAND=""
 ENV CRON_SCHEDULE="*/15 * * * *"
 
-# Install required packages
+# Install required packages including Node.js and npm
 RUN apt-get update && \
-    apt-get install -y curl totp rclone cron && \
-    curl -sSL https://cli.internxt.com/install.sh | bash && \
-    apt-get clean
+    apt-get install -y curl gnupg2 && \
+    curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
+    apt-get install -y nodejs rclone cron && \
+    npm install -g @internxt/cli && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create a directory for Internxt CLI configuration
 RUN mkdir -p /config
