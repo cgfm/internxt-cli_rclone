@@ -17,7 +17,7 @@ ENV CRON_SCHEDULE="*/15 * * * *"
 # Install required packages including Node.js and npm
 RUN apt-get update && \
     apt-get install -y curl gnupg2 && \
-    curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
+    curl -fsSL https://deb.nodesource.com/setup_23.x | bash - && \
     apt-get install -y nodejs rclone cron && \
     npm install -g @internxt/cli && \
     apt-get clean && \
