@@ -2,17 +2,20 @@
 FROM ubuntu:20.04
 
 # Set environment variables
-ENV INTERNXT_EMAIL=""
-ENV INTERNXT_PASSWORD=""
-ENV INTERNXT_TOTP=""
-ENV INTERNXT_WEB_PORT=3005
-ENV INTERNXT_HTTPS=false
-ENV INTERNXT_SSL_CERT=""
-ENV INTERNXT_SSL_KEY=""
-ENV RCLONE_WEB_GUI_PORT=5572
-ENV RCLONE_CONFIG="/config/rclone.conf"
-ENV CRON_COMMAND=""
-ENV CRON_SCHEDULE="*/15 * * * *"
+ENV CRON_COMMAND="" \
+    CRON_SCHEDULE="*/15 * * * *" \
+    INTERNXT_CONFIG_DIR="/config" \
+    INTERNXT_EMAIL="" \
+    INTERNXT HTTPS=false \
+    INTERNXT_PASSWORD="" \
+    INTERNXT_TOTP="" \
+    INTERNXT_WEB_PORT=3005 \
+    RCLONE_CONFIG="/config/rclone.conf" \
+    RCLONE_GUI_PASS="rclone_password" \
+    RCLONE_GUI_USER="rclone_user" \
+    RCLONE_SSL_CERT="" \
+    RCLONE_SSL_KEY="" \
+    RCLONE_WEB_GUI_PORT=5572
 
 # Install required packages including Node.js and npm
 RUN apt-get update && \
