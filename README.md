@@ -72,7 +72,7 @@ docker run -e INTERNXT_EMAIL="your_email@example.com" \
            -e CRON_COMMAND="rclone ls internxt:" \
            -e CRON_SCHEDULE="*/15 * * * *" \
            --rm -v /local/config/dir:/config \
-           your_dockerhub_username/your_image_name:latest
+           cgfm/internxt-cli_rclone:latest
 ```
 
 ### Environment Variables
@@ -106,7 +106,7 @@ version: '3.8'
 
 services:
   internxt-cli:
-    image: your_dockerhub_username/your_image_name:latest
+    image: cgfm/internxt-cli_rclone:latest
     environment:
       INTERNXT_EMAIL: your_email@example.com
       INTERNXT_PASSWORD: your_password
