@@ -28,7 +28,7 @@ jobs:
           context: .  # This points to the root of the repository where the Dockerfile is located
           file: ./Dockerfile  # Path to your Dockerfile
           push: true
-          tags: your_dockerhub_username/your_image_name:latest  # Change this to your Docker Hub repository name
+          tags: cgfm/internxt-cli_rclone:latest  # Change this to your Docker Hub repository name
 
       - name: Logout from Docker Hub
         run: docker logout
