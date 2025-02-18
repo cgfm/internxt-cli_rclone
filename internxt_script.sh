@@ -6,6 +6,7 @@ set -e
 INTERNXT_CONFIG_DIR="/config"
 RCLONE_CONFIG_FILE="$RCLONE_CONFIG"
 
+# Ensure required environment variables are set
 if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
     echo "Error: INTERNXT_EMAIL and INTERNXT_PASSWORD must be set."
     exit 1
@@ -28,22 +29,29 @@ else
     rclone rcd --rc-web-gui --rc-web-gui-auth="basic" \
         --rc-user="${RCLONE_GUI_USER:-rclone_user}" \
         --rc-pass="${RCLONE_GUI_PASS:-rclone_password}" \
-        --rc-addr="0.0.0.0:$RCLONE_WEB_GUI_PORT" --config="$RCLONE_CONFIG_FILE" &
+        --rc-addr="0.0.0.0:$RCLONE_WEB_GUI_PORT" \
+        --config="$RCLONE_CONFIG_FILE" \
+        --no-auth \
+        ${RCLONE_SSL_CERT:+--rc-cert="$RCLONE_SSL_CERT"} \
+        ${RCLONE_SSL_KEY:+--rc-key="$RCLONE_SSL_KEY"} &
 fi
 
+# Handle TOTP for two-factor authentication
 if [ -n "$INTERNXT_TOTP" ]; then
     echo "Generating TOTP..."
     TOTP=$(totp "$INTERNXT_TOTP")
-    echo "Logging into Internxt..."
+    echo "Logging into Internxt with TOTP..."
     internxt login --email="$INTERNXT_EMAIL" --password="$INTERNXT_PASSWORD" --twofactor="$TOTP" --non-interactive
 else
     echo "Logging into Internxt without TOTP..."
     internxt login --email="$INTERNXT_EMAIL" --password="$INTERNXT_PASSWORD" --non-interactive
 fi
 
+# Enable WebDAV
 echo "Enabling WebDAV..."
 internxt webdav-config --port="$INTERNXT_WEB_PORT" --config-dir="$INTERNXT_CONFIG_DIR"
 
+# Configure HTTPS if required
 if [ "$INTERNXT_HTTPS" = "true" ]; then
     if [ -z "$INTERNXT_SSL_CERT" ] || [ -z "$INTERNXT_SSL_KEY" ]; then
         echo "Error: INTERNXT_SSL_CERT and INTERNXT_SSL_KEY must be set for HTTPS."
@@ -54,6 +62,7 @@ else
     internxt webdav-config --http
 fi
 
+# Enable WebDAV
 internxt webdav enable
 
 # Set default cron schedule if not specified
@@ -68,7 +77,7 @@ if [ -n "$CRON_COMMAND" ]; then
     echo "Cron service started."
 fi
 
-# Run the CRON_COMMAND directly for the health check
+# Function to run the CRON_COMMAND directly for the health check
 run_cron_command() {
     echo "Running cron command with lock..."
     {
