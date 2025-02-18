@@ -3,10 +3,7 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - main  # Change this to your default branch if needed
-  pull_request:
-    branches:
-      - main  # Change this to your default branch if needed
+      - main  # Set the source branch to 'main'
 
 jobs:
   build:
@@ -22,8 +19,8 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}  # Set this secret in your repo settings
-          password: ${{ secrets.DOCKER_PASSWORD }}  # Set this secret in your repo settings
+          username: ${{ github.actor }}  # GitHub username
+          password: ${{ secrets.GITHUB_TOKEN }}  # GitHub token for authentication
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
