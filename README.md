@@ -4,6 +4,8 @@
 
 This project provides a Docker image for the **Internxt CLI**, allowing users to easily interact with the Internxt storage service using command-line tools. The image encapsulates all dependencies and configurations needed to run the Internxt CLI in a clean and reproducible environment.
 
+**Note**: This project was generated with Workik AI.
+
 ## Table of Contents
 
 - [Internxt CLI Docker Image](#internxt-cli-docker-image)
@@ -13,6 +15,9 @@ This project provides a Docker image for the **Internxt CLI**, allowing users to
   - [Getting Started](#getting-started)
   - [Usage](#usage)
     - [Environment Variables](#environment-variables)
+  - [Using Docker Compose](#using-docker-compose)
+    - [Create `docker-compose.yml`](#create-docker-composeyml)
+    - [Running the Service](#running-the-service)
   - [Building the Docker Image](#building-the-docker-image)
   - [GitHub Actions Workflow](#github-actions-workflow)
     - [Workflow File](#workflow-file)
@@ -37,10 +42,10 @@ Before you begin, ensure you have the following installed:
 
 1. **Clone the repository**:
 
-   \```bash
+   ```bash
    git clone https://github.com/your_username/internxt-cli-docker.git
    cd internxt-cli-docker
-   \```
+   ```
 
 2. **Set up secrets for Docker Hub**:
    - Go to your GitHub repository settings.
@@ -52,7 +57,7 @@ Before you begin, ensure you have the following installed:
 
 To run the Internxt CLI Docker container, use the following command:
 
-\```bash
+```bash
 docker run -e INTERNXT_EMAIL="your_email@example.com" \
            -e INTERNXT_PASSWORD="your_password" \
            -e INTERNXT_TOTP="your_totp_secret" \
@@ -68,7 +73,7 @@ docker run -e INTERNXT_EMAIL="your_email@example.com" \
            -e CRON_SCHEDULE="*/15 * * * *" \
            --rm -v /local/config/dir:/config \
            your_dockerhub_username/your_image_name:latest
-\```
+```
 
 ### Environment Variables
 
@@ -88,13 +93,68 @@ docker run -e INTERNXT_EMAIL="your_email@example.com" \
 | `CRON_COMMAND`         | Command to run in the cron job (e.g., `rclone ls internxt:`). |
 | `CRON_SCHEDULE`        | Cron schedule (default: `*/15 * * * *`).                     |
 
+## Using Docker Compose
+
+To simplify the process of running the Internxt CLI with all necessary configurations, you can use Docker Compose. Below is an example of a `docker-compose.yml` file you can use.
+
+### Create `docker-compose.yml`
+
+Create a file named `docker-compose.yml` in the root of your project directory with the following content:
+
+```yaml
+version: '3.8'
+
+services:
+  internxt-cli:
+    image: your_dockerhub_username/your_image_name:latest
+    environment:
+      INTERNXT_EMAIL: your_email@example.com
+      INTERNXT_PASSWORD: your_password
+      INTERNXT_TOTP: your_totp_secret
+      INTERNXT_WEB_PORT: 3005
+      INTERNXT_HTTPS: "true"
+      INTERNXT_SSL_CERT: /path/to/your/cert.crt
+      INTERNXT_SSL_KEY: /path/to/your/key.key
+      RCLONE_WEB_GUI_PORT: 5572
+      RCLONE_CONFIG: /config/rclone.conf
+      RCLONE_GUI_USER: your_rclone_username
+      RCLONE_GUI_PASS: your_rclone_password
+      CRON_COMMAND: rclone ls internxt:
+      CRON_SCHEDULE: "*/15 * * * *"
+    volumes:
+      - ./local/config/dir:/config
+    ports:
+      - "3005:3005"
+      - "5572:5572"
+```
+
+### Running the Service
+
+To start the service defined in your `docker-compose.yml` file, run the following command:
+
+```bash
+docker-compose up -d
+```
+
+This command will run the Internxt CLI container in detached mode. You can view the logs using:
+
+```bash
+docker-compose logs -f
+```
+
+To stop the service, use:
+
+```bash
+docker-compose down
+```
+
 ## Building the Docker Image
 
 To build the Docker image locally, run:
 
-\```bash
+```bash
 docker build -t your_dockerhub_username/your_image_name:latest .
-\```
+```
 
 ## GitHub Actions Workflow
 
