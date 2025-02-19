@@ -85,16 +85,43 @@ rclone sync --create-empty-src-dirs --retries 5 --differ --verbose
 
 The cron command will be built to include all pairs of local and remote paths defined. For example, if you define `LOCAL_PATH_1` and `REMOTE_PATH_1`, the command will be constructed to run the sync between these two paths.
 
-## Health Check
+```
+rclone sync --create-empty-src-dirs --retries 5 --differ --verbose REMOTE_PATH_1 LOCAL_PATH_1
+rclone sync --create-empty-src-dirs --retries 5 --differ --verbose REMOTE_PATH_2 LOCAL_PATH_2
+...
+rclone sync --create-empty-src-dirs --retries 5 --differ --verbose REMOTE_PATH_n LOCAL_PATH_n
+```
 
-The health check for the container ensures that:
-- The Internxt service is running.
-- The rclone Web GUI is accessible.
-- The cron service is running and, if a cron schedule is defined, that the specified cron job is set correctly.
 
-If `CRON_SCHEDULE` is not defined (i.e., it is empty), the health check will skip checking the cron service and job presence, allowing the container to remain healthy if the other checks pass.
+## SSL Configuration
 
-If any of the checks related to the Internxt service or rclone Web GUI fail, the container will be marked as unhealthy.
+### Use Case for Internxt WebDAV Certificate
+
+The Internxt WebDAV certificate is used to secure communication between your client application (such as a web browser or another application) and the Internxt WebDAV server. This certificate ensures that the data being transmitted is encrypted and protects against potential eavesdropping or man-in-the-middle attacks. 
+
+When you set up your Internxt WebDAV server, you should obtain a valid SSL certificate that matches the designated hostname. This certificate allows users to securely connect to the WebDAV server over HTTPS, ensuring that their credentials and data are protected during transit.
+
+### Use Case for rclone Certificate
+
+The rclone certificate is utilized when you run the rclone remote control daemon (rcd) with SSL enabled. This certificate secures the connection between the rclone client and the rclone server, allowing you to execute commands and transfer files securely over HTTPS. 
+
+When configuring rclone for use with Internxt or any other service, it’s important to provide a valid SSL certificate that corresponds to the hostname specified in your rclone configuration. This ensures that the communication remains encrypted and secure.
+
+### Important Note on Certificates
+
+In addition to being valid for the designated hostname, the provided SSL certificates must also be valid for `localhost`. This is crucial to allow a secure connection between rclone and the Internxt CLI when running locally. Since both services can only operate over HTTP or HTTPS, having valid certificates for `localhost` ensures that you can successfully establish a secure connection without encountering SSL errors.
+
+Make sure to test your SSL configuration thoroughly to confirm that all services can communicate securely using the specified certificates.
+
+## Health Check Script
+
+The `health_check.sh` script ensures the operational status of the Internxt application and the rclone Web GUI. It performs the following checks:
+
+- Verifies if the Internxt service is running.
+- Checks the accessibility of the rclone Web GUI over HTTP or HTTPS.
+- Confirms the cron service is active and verifies that the specified cron jobs are configured (only if `CRON_SCHEDULE` is set).
+
+This script provides essential diagnostics for maintaining system health and service availability.
 
 ## License
 

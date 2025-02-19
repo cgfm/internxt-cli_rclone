@@ -73,6 +73,8 @@ if [ -n "$CRON_SCHEDULE" ]; then
     # Add command to user-specific crontab with flock to prevent concurrent runs
     echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $CRON_COMMAND" >> /etc/crontab
 
+    echo "Complete cron command: $CRON_COMMAND"
+
     service cron start
     echo "Cron service started."
 else
@@ -84,5 +86,6 @@ echo "Starting WebDAV status monitoring..."
 while true; do
     internxt --version
     internxt webdav status
+    rclone rcd --rc-addr="localhost:$RCLONE_WEB_GUI_PORT" --rc-user="$RCLONE_GUI_USER" --rc-pass="$RCLONE_GUI_PASS" status
     sleep 600  # Wait for 10 minutes (600 seconds) before checking again
 done
