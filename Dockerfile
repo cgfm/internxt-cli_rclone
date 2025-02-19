@@ -9,8 +9,6 @@ ENV INTERNXT_HTTPS=false
 ENV INTERNXT_PASSWORD=""
 ENV INTERNXT_TOTP=""
 ENV INTERNXT_WEB_PORT=3005
-ENV PUID=1000
-ENV PGID=1000
 ENV TZ=Etc/UTC
 ENV RCLONE_CONFIG="/config/rclone.conf"
 ENV RCLONE_GUI_PASS="rclone_password"
@@ -33,19 +31,13 @@ RUN npm install -g @internxt/cli
 # Set the timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# Set user permissions
-RUN groupadd -g $PGID usergroup && \
-    useradd -u $PUID -g usergroup -m user
-
 # Create directories for Internxt CLI configuration and SSL certs
 RUN mkdir -p /config && \
-    chown -R $PUID:$PGID /config && \
-    mkdir -p /home/user/.internxt-cli/certs && \
-    chown -R $PUID:$PGID /home/user/.internxt-cli
+    mkdir -p /root/.internxt-cli/certs
 
 # Link SSL certificate and key files if provided
-RUN ln -sf $INTERNXT_SSL_CERT /home/user/.internxt-cli/certs/cert.crt && \
-    ln -sf $INTERNXT_SSL_KEY /home/user/.internxt-cli/certs/priv.key
+RUN ln -sf $INTERNXT_SSL_CERT /root/.internxt-cli/certs/cert.crt && \
+    ln -sf $INTERNXT_SSL_KEY /root/.internxt-cli/certs/priv.key
 
 # Copy the internxt_script.sh and health_check.sh into the container
 COPY internxt_script.sh /usr/local/bin/internxt_script.sh
@@ -53,9 +45,6 @@ COPY health_check.sh /usr/local/bin/health_check.sh
 
 # Make the scripts executable
 RUN chmod +x /usr/local/bin/internxt_script.sh /usr/local/bin/health_check.sh
-
-# Switch to the non-root user
-USER user
 
 # Set the entry point to run the script
 ENTRYPOINT ["/usr/local/bin/internxt_script.sh"]
