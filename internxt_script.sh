@@ -81,11 +81,3 @@ else
     echo "No CRON_SCHEDULE provided. No cron jobs will be set and cron service not started."
 fi
 
-# Start WebDAV status monitoring, allowing for long-running commands
-echo "Starting WebDAV status monitoring..."
-while true; do
-    internxt --version
-    internxt webdav status
-    rclone rcd --rc-addr="localhost:$RCLONE_WEB_GUI_PORT" --rc-user="$RCLONE_GUI_USER" --rc-pass="$RCLONE_GUI_PASS" status
-    sleep 600  # Wait for 10 minutes (600 seconds) before checking again
-done
