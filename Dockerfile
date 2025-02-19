@@ -27,19 +27,24 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Create directories for Internxt CLI configuration and SSL certs
+RUN mkdir -p /config && \
+    mkdir -p /home/user/.internxt-cli/certs && \
+    ln -s /config /home/user/.internxt-cli
+
+# Install the Internxt CLI
+RUN npm install -g @internxt/cli
+
+# Link SSL certificate and key files if provided
+RUN ln -sf $INTERNXT_SSL_CERT /home/user/.internxt-cli/certs/cert.crt && \
+    ln -sf $INTERNXT_SSL_KEY /home/user/.internxt-cli/certs/priv.key
+
 # Set the timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Set user permissions
 RUN groupadd -g $PGID usergroup && \
     useradd -u $PUID -g usergroup -m user
-
-# Create a directory for Internxt CLI configuration
-RUN mkdir -p /config && \
-    ln -s /config /home/user/.internxt-cli
-
-# Install the Internxt CLI
-RUN npm install -g @internxt/cli
 
 # Switch to the non-root user
 USER user

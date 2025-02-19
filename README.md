@@ -25,9 +25,9 @@ The following environment variables can be set when running the Docker container
 | `CRON_SCHEDULE`                        | Cron schedule for running the specified command. Default is an empty string.                |
 | `LOCAL_PATH_1` to `LOCAL_PATH_20`     | Up to 20 local paths where files will be synchronized. Each local path must have a corresponding remote path. |
 | `REMOTE_PATH_1` to `REMOTE_PATH_20`   | Up to 20 remote paths for synchronization with the Internxt service.                       |
-| `PUID`                                 | User ID to run the applicaton. Default is `1000`.                                          |
+| `PUID`                                 | User ID to run the application. Default is `1000`.                                          |
 | `PGID`                                 | Group ID to run the application. Default is `1000`.                                        |
-| `TZ`                                   | Timezone for the application. Default is `Etc/UTC`.                                        |i
+| `TZ`                                   | Timezone for the application. Default is `Etc/UTC`.                                        |
 
 ## Docker Image
 
