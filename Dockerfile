@@ -46,6 +46,14 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN groupadd -g $PGID usergroup && \
     useradd -u $PUID -g usergroup -m user
 
+# Copy the internxt_script.sh and health_check.sh into the container
+COPY internxt_script.sh /usr/local/bin/internxt_script.sh
+COPY health_check.sh /usr/local/bin/health_check.sh
+
+# Make the scripts executable
+RUN chmod +x /usr/local/bin/internxt_script.sh /usr/local/bin/health_check.sh
+
+
 # Switch to the non-root user
 USER user
 
