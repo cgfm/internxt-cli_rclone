@@ -3,16 +3,16 @@ FROM ubuntu:20.04
 
 # Set environment variables
 ENV CRON_COMMAND=""
-ENV CRON_SCHEDULE=""  # Default value is an empty string
+ENV CRON_SCHEDULE=""
 ENV INTERNXT_CONFIG_DIR="/config"
 ENV INTERNXT_EMAIL=""
 ENV INTERNXT_HTTPS=false
 ENV INTERNXT_PASSWORD=""
 ENV INTERNXT_TOTP=""
 ENV INTERNXT_WEB_PORT=3005
-ENV PUID=1000  # Default user ID
-ENV PGID=1000  # Default group ID
-ENV TZ=Etc/UTC  # Default timezone
+ENV PUID=1000
+ENV PGID=1000
+ENV TZ=Etc/UTC
 ENV RCLONE_CONFIG="/config/rclone.conf"
 ENV RCLONE_GUI_PASS="rclone_password"
 ENV RCLONE_GUI_USER="rclone_user"
