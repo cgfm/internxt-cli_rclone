@@ -8,29 +8,23 @@ if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
     exit 1
 fi
 
-# Check if the rclone config file exists
-if [ ! -f "$RCLONE_CONFIG" ]; then
-    echo "Warning: rclone config file not found at $RCLONE_CONFIG. Ignoring rclone configuration."
-else
-    # Configure rclone to use the Internxt WebDAV server
-    echo "Configuring rclone remote..."
-    rclone config create internxt webdav \
-        url="http://localhost:$INTERNXT_WEB_PORT/" \
-        vendor="other" \
-        user="$INTERNXT_EMAIL" \
-        pass="$INTERNXT_PASSWORD"
+# Configure rclone to use the Internxt WebDAV server
+echo "Configuring rclone internxt webdav remote..."
+rclone config create internxt webdav \
+    url="http://localhost:$INTERNXT_WEB_PORT/" \
+    vendor="other" \
+    user="$INTERNXT_EMAIL" \
+    pass="$INTERNXT_PASSWORD"
 
-    # Start rclone Web GUI using provided environment variables for authentication
-    echo "Starting rclone Web GUI..."
-    rclone rcd --rc-web-gui --rc-web-gui-auth="basic" \
-        --rc-user="${RCLONE_GUI_USER:-rclone_user}" \
-        --rc-pass="${RCLONE_GUI_PASS:-rclone_password}" \
-        --rc-addr="0.0.0.0:$RCLONE_WEB_GUI_PORT" \
-        --config="$RCLONE_CONFIG" \
-        --no-auth \
-        ${RCLONE_SSL_CERT:+--rc-cert="$RCLONE_SSL_CERT"} \
-        ${RCLONE_SSL_KEY:+--rc-key="$RCLONE_SSL_KEY"} &
-fi
+echo "Configuring rclone webgui..."
+rclone rcd --rc-web-gui --rc-web-gui-auth="basic" \
+    --rc-user="${RCLONE_GUI_USER:-rclone_user}" \
+    --rc-pass="${RCLONE_GUI_PASS:-rclone_password}" \
+    --rc-addr="0.0.0.0:$RCLONE_WEB_GUI_PORT" \
+    --no-auth \
+    ${RCLONE_SSL_CERT:+--config="$RCLONE_CONFIG"} \
+    ${RCLONE_SSL_CERT:+--rc-cert="$RCLONE_SSL_CERT"} \
+    ${RCLONE_SSL_KEY:+--rc-key="$RCLONE_SSL_KEY"} &
 
 # Handle TOTP for two-factor authentication
 if [ -n "$INTERNXT_TOTP" ]; then
@@ -45,16 +39,11 @@ fi
 
 # Enable WebDAV
 echo "Enabling WebDAV..."
-internxt webdav-config --port="$INTERNXT_WEB_PORT"
-
 # Configure HTTPS if required
 if [ "$INTERNXT_HTTPS" = "true" ]; then
-    if [ -z "$INTERNXT_SSL_CERT" ] || [ -z "$INTERNXT_SSL_KEY" ]; then
-        echo "Warning: INTERNXT_SSL_CERT and INTERNXT_SSL_KEY should be set for HTTPS."
-    fi
-    internxt webdav-config --https
+    internxt webdav-config --https --port="$INTERNXT_WEB_PORT"
 else
-    internxt webdav-config --http
+    internxt webdav-config --http --port="$INTERNXT_WEB_PORT"
 fi
 
 # Enable WebDAV
@@ -63,7 +52,7 @@ internxt webdav enable
 # Check if CRON_SCHEDULE is set
 if [ -n "$CRON_SCHEDULE" ]; then
     echo "Cron schedule is set to: $CRON_SCHEDULE"
-    
+
     # Prepare the CRON_COMMAND
     if [ -n "$CRON_COMMAND" ]; then
         echo "Using provided CRON_COMMAND: $CRON_COMMAND"
@@ -76,18 +65,25 @@ if [ -n "$CRON_SCHEDULE" ]; then
     for i in {1..20}; do
         remote_var="REMOTE_PATH_$i"
         local_var="LOCAL_PATH_$i"
-        
-        if [ ! -z "${!local_var}" ] && [ ! -z "${!remote_var}" ]; then
-            CRON_COMMAND="${CRON_COMMAND} ${!local_var} ${!remote_var}"
+
+        if [ ! -z "${!remote_var}" ] && [ ! -z "${!local_var}" ]; then
+            CRON_COMMAND="${CRON_COMMAND} ${!remote_var} ${!local_var}"
         fi
     done
-    
-    # Add command to crontab
+
+    # Add command to user-specific crontab with flock to prevent concurrent runs
     echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $CRON_COMMAND" >> /etc/crontab
+
+    service cron start
+    echo "Cron service started."
 else
-    echo "No CRON_SCHEDULE provided. No cron jobs will be set."
+    echo "No CRON_SCHEDULE provided. No cron jobs will be set and cron service not started."
 fi
 
-# Start the cron service
-service cron start
-echo "Cron service started."
+# Start WebDAV status monitoring, allowing for long-running commands
+echo "Starting WebDAV status monitoring..."
+while true; do
+    internxt --version
+    internxt webdav status
+    sleep 600  # Wait for 10 minutes (600 seconds) before checking again
+done
