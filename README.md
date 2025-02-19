@@ -8,7 +8,6 @@ The following environment variables can be set when running the Docker container
 
 | Environment Variable                   | Description                                                                                  |
 |----------------------------------------|----------------------------------------------------------------------------------------------|
-| `INTERNXT_CONFIG_DIR`                 | Directory for Internxt CLI configuration. Default is `/config`.                             |
 | `INTERNXT_EMAIL`                       | Email address for Internxt login.                                                           |
 | `INTERNXT_HTTPS`                       | Set to `true` to enable HTTPS for WebDAV. Default is `false`.                              |
 | `INTERNXT_PASSWORD`                    | Password for Internxt login.                                                                 |
@@ -109,5 +108,5 @@ This code was generated with the help of Workik AI. The licensing model for the 
 
 ## Links
 
-- [Internxt CLI Documentation](https://internxt.com/docs)
+- [Internxt CLI Documentation](https://github.com/internxt/cli)
 - [rclone Documentation](https://rclone.org/docs/)

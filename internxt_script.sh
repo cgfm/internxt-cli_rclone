@@ -2,10 +2,6 @@
 
 set -e
 
-# Set default config directory
-INTERNXT_CONFIG_DIR="/config"
-RCLONE_CONFIG_FILE="$RCLONE_CONFIG"
-
 # Ensure required environment variables are set
 if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
     echo "Error: INTERNXT_EMAIL and INTERNXT_PASSWORD must be set."
@@ -13,8 +9,8 @@ if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
 fi
 
 # Check if the rclone config file exists
-if [ ! -f "$RCLONE_CONFIG_FILE" ]; then
-    echo "Warning: rclone config file not found at $RCLONE_CONFIG_FILE. Ignoring rclone configuration."
+if [ ! -f "$RCLONE_CONFIG" ]; then
+    echo "Warning: rclone config file not found at $RCLONE_CONFIG. Ignoring rclone configuration."
 else
     # Configure rclone to use the Internxt WebDAV server
     echo "Configuring rclone remote..."
@@ -30,7 +26,7 @@ else
         --rc-user="${RCLONE_GUI_USER:-rclone_user}" \
         --rc-pass="${RCLONE_GUI_PASS:-rclone_password}" \
         --rc-addr="0.0.0.0:$RCLONE_WEB_GUI_PORT" \
-        --config="$RCLONE_CONFIG_FILE" \
+        --config="$RCLONE_CONFIG" \
         --no-auth \
         ${RCLONE_SSL_CERT:+--rc-cert="$RCLONE_SSL_CERT"} \
         ${RCLONE_SSL_KEY:+--rc-key="$RCLONE_SSL_KEY"} &
@@ -49,7 +45,7 @@ fi
 
 # Enable WebDAV
 echo "Enabling WebDAV..."
-internxt webdav-config --port="$INTERNXT_WEB_PORT" --config-dir="$INTERNXT_CONFIG_DIR"
+internxt webdav-config --port="$INTERNXT_WEB_PORT"
 
 # Configure HTTPS if required
 if [ "$INTERNXT_HTTPS" = "true" ]; then

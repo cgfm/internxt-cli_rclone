@@ -4,7 +4,6 @@ FROM ubuntu:20.04
 # Set environment variables
 ENV CRON_COMMAND=""
 ENV CRON_SCHEDULE=""
-ENV INTERNXT_CONFIG_DIR="/config"
 ENV INTERNXT_EMAIL=""
 ENV INTERNXT_HTTPS=false
 ENV INTERNXT_PASSWORD=""
@@ -25,25 +24,22 @@ RUN apt-get update && \
     apt-get install -y curl gnupg2 tzdata && \
     curl -fsSL https://deb.nodesource.com/setup_23.x | bash - && \
     apt-get install -y nodejs rclone cron && \
-    npm install -g @internxt/cli && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Set the timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# Create a directory for Internxt CLI configuration
-RUN mkdir -p /config
-
-# Copy the Internxt CLI script into the container
-COPY internxt_script.sh /usr/local/bin/internxt_script.sh
-
-# Make the script executable
-RUN chmod +x /usr/local/bin/internxt_script.sh
-
 # Set user permissions
 RUN groupadd -g $PGID usergroup && \
     useradd -u $PUID -g usergroup -m user
+
+# Create a directory for Internxt CLI configuration
+RUN mkdir -p /config && \
+    ln -s /config /home/user/.internxt-cli
+
+# Install the Internxt CLI
+RUN npm install -g @internxt/cli
 
 # Switch to the non-root user
 USER user
