@@ -1,4 +1,4 @@
-FROM node:alpine as builder
+FROM node:20-bullseye
 
 # Set environment variables
 ENV CRON_COMMAND="" \
@@ -15,7 +15,7 @@ ENV CRON_COMMAND="" \
     RCLONE_WEB_GUI_PORT=5572
 
 # Install the Internxt CLI and rclone along with other required packages in a single RUN command
-RUN apk update && apk add --no-cache curl tzdata rclone dcron && \
+RUN apk update && apk add --no-cache curl tzdata rclone cron && \
     npm install -g @internxt/cli && \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
