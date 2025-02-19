@@ -50,10 +50,9 @@ internxt webdav-config --port="$INTERNXT_WEB_PORT"
 # Configure HTTPS if required
 if [ "$INTERNXT_HTTPS" = "true" ]; then
     if [ -z "$INTERNXT_SSL_CERT" ] || [ -z "$INTERNXT_SSL_KEY" ]; then
-        echo "Error: INTERNXT_SSL_CERT and INTERNXT_SSL_KEY must be set for HTTPS."
-        exit 1
+        echo "Warning: INTERNXT_SSL_CERT and INTERNXT_SSL_KEY should be set for HTTPS."
     fi
-    internxt webdav-config --https --ssl-cert="$INTERNXT_SSL_CERT" --ssl-key="$INTERNXT_SSL_KEY"
+    internxt webdav-config --https
 else
     internxt webdav-config --http
 fi
