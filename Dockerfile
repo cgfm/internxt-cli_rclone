@@ -15,11 +15,11 @@ ENV CRON_COMMAND="" \
     RCLONE_WEB_GUI_PORT=5572
 
 # Install the Internxt CLI and rclone along with other required packages in a single RUN command
-RUN apk add --no-cache curl tzdata rclone cron && \
-    npm install -g @internxt/cli && \
-    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
-    echo $TZ > /etc/timezone && \
-    mkdir -p /config /root/.internxt-cli/certs
+RUN apk add --no-cache curl tzdata rclone cron 
+RUN npm install -g @internxt/cli
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime
+RUN echo $TZ > /etc/timezone
+RUN mkdir -p /config /root/.internxt-cli/certs
 
 # Link SSL certificate and key files if provided
 RUN ln -sf $INTERNXT_SSL_CERT /root/.internxt-cli/certs/cert.crt && \
