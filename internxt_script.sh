@@ -17,7 +17,7 @@ rclone config create internxt webdav \
     pass="$INTERNXT_PASSWORD"
 
 echo "Configuring rclone webgui..."
-rclone rcd --rc-web-gui --rc-web-gui-auth="basic" \
+rclone rcd --rc-web-gui \
     --rc-user="${RCLONE_GUI_USER:-rclone_user}" \
     --rc-pass="${RCLONE_GUI_PASS:-rclone_password}" \
     --rc-addr="0.0.0.0:$RCLONE_WEB_GUI_PORT" \
