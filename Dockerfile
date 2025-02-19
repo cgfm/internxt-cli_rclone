@@ -39,9 +39,8 @@ RUN groupadd -g $PGID usergroup && \
 
 # Create directories for Internxt CLI configuration and SSL certs
 RUN mkdir -p /config && \
-    mkdir -p /home/user/.internxt-cli/certs && \
-    ln /config /home/user/.internxt-cli && \
-    chown -R $PUID:$PGID /config
+    mkdir -p /home/user/.internxt-cli/certs && \ 
+    chown -R $PUID:$PGID /config 
 
 # Link SSL certificate and key files if provided
 RUN ln -sf $INTERNXT_SSL_CERT /home/user/.internxt-cli/certs/cert.crt && \
