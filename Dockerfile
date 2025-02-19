@@ -3,10 +3,9 @@ FROM ubuntu:20.04
 
 # Set environment variables
 ENV CRON_COMMAND=""
-ENV CRON_SCHEDULE="*/15 * * * *"
+ENV CRON_SCHEDULE=""
 ENV INTERNXT_CONFIG_DIR="/config"
 ENV INTERNXT_EMAIL=""
-ENV INTERNXT HTTPS=false
 ENV INTERNXT_PASSWORD=""
 ENV INTERNXT_TOTP=""
 ENV INTERNXT_WEB_PORT=3005
@@ -32,12 +31,15 @@ RUN mkdir -p /config
 # Copy the Internxt CLI script into the container
 COPY internxt_script.sh /usr/local/bin/internxt_script.sh
 
-# Make the script executable
-RUN chmod +x /usr/local/bin/internxt_script.sh
+# Copy the health check script into the container
+COPY health_check.sh /usr/local/bin/health_check.sh
+
+# Make the scripts executable
+RUN chmod +x /usr/local/bin/internxt_script.sh /usr/local/bin/health_check.sh
 
 # Set the entry point to run the script
 ENTRYPOINT ["/usr/local/bin/internxt_script.sh"]
 
-# Add a health check that runs the specified CRON_COMMAND
+# Add a health check that verifies Internxt, rclone Web GUI, and cron job status
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD /bin/bash -c "$CRON_COMMAND" || exit 1
+    CMD /usr/local/bin/health_check.sh || exit 1

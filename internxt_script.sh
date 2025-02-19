@@ -65,26 +65,37 @@ fi
 # Enable WebDAV
 internxt webdav enable
 
-# Set default cron schedule if not specified
-CRON_SCHEDULE="${CRON_SCHEDULE:-*/15 * * * *}"  # Default to every 15 minutes
+# Check if CRON_SCHEDULE is set
+if [ -n "$CRON_SCHEDULE" ]; then
+    echo "Cron schedule is set to: $CRON_SCHEDULE"
+    
+    # Prepare the CRON_COMMAND
+    if [ -n "$CRON_COMMAND" ]; then
+        echo "Using provided CRON_COMMAND: $CRON_COMMAND"
+    else
+        echo "No CRON_COMMAND provided. Using default rclone sync command."
+        CRON_COMMAND="rclone sync --create-empty-src-dirs --retries 5 --differ --verbose"
+    fi
 
-# Set up cron job if CRON_COMMAND is specified
-if [ -n "$CRON_COMMAND" ]; then
-    echo "Setting up cron job..."
+    # Loop to append remote and local paths to the CRON_COMMAND
+    for i in {1..20}; do
+        remote_var="REMOTE_PATH_$i"
+        local_var="LOCAL_PATH_$i"
+        
+        if [ ! -z "${!local_var}" ] && [ ! -z "${!remote_var}" ]; then
+            CRON_COMMAND="${CRON_COMMAND} ${!local_var} ${!remote_var}"
+        fi
+    done
+    
+    # Add command to crontab
     echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $CRON_COMMAND" >> /etc/crontab
-    # Start the cron service
-    service cron start
-    echo "Cron service started."
+else
+    echo "No CRON_SCHEDULE provided. No cron jobs will be set."
 fi
 
-# Function to run the CRON_COMMAND directly for the health check
-run_cron_command() {
-    echo "Running cron command with lock..."
-    {
-        flock -n 200 || { echo "Cron command is already running"; exit 1; }
-        eval "$CRON_COMMAND"
-    } 200>/tmp/cron.lock
-}
+# Start the cron service
+service cron start
+echo "Cron service started."
 
 # Start WebDAV status monitoring, allowing for long-running commands
 echo "Starting WebDAV status monitoring..."

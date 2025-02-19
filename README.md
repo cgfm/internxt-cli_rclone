@@ -1,97 +1,104 @@
-# Internxt CLI Docker Setup
+# Internxt CLI with rclone
 
-This repository provides a Docker setup for running the Internxt CLI and rclone with WebDAV support. The `internxt_script.sh` script is designed to handle configuration, authentication, and WebDAV functionality.
-
-## Prerequisites
-
-- Docker
-- Docker Compose (optional)
+This repository contains a Docker setup to run the Internxt CLI with rclone support. It allows you to synchronize files between your local filesystem and Internxt using WebDAV.
 
 ## Environment Variables
 
-The following environment variables are required to configure the script:
+The following environment variables can be set when running the Docker container. You can define up to 20 pairs of remote and local paths. Note that for each local path, a corresponding remote path is necessary.
 
-- `INTERNXT_EMAIL`: Your Internxt account email.
-- `INTERNXT_PASSWORD`: Your Internxt account password.
-- `INTERNXT_TOTP`: Your two-factor authentication secret (if enabled).
-- `INTERNXT_WEB_PORT`: Port for the Internxt WebDAV server (default: `3005`).
-- `INTERNXT_HTTPS`: Set to `true` to enable HTTPS (default: `false`).
-- `INTERNXT_SSL_CERT`: Path to your SSL certificate file.
-- `INTERNXT_SSL_KEY`: Path to your SSL private key file.
-- `RCLONE_WEB_GUI_PORT`: Port for the rclone Web GUI (default: `5572`).
-- `CRON_COMMAND`: Command to run on a schedule.
-- `CRON_SCHEDULE`: Cron schedule expression (default: `*/15 * * * *`).
-- `RCLONE_GUI_USER`: Username for the rclone Web GUI (default: `rclone_user`).
-- `RCLONE_GUI_PASS`: Password for the rclone Web GUI (default: `rclone_password`).
+| Environment Variable                   | Description                                                                                  |
+|----------------------------------------|----------------------------------------------------------------------------------------------|
+| `INTERNXT_CONFIG_DIR`                 | Directory for Internxt CLI configuration. Default is `/config`.                             |
+| `INTERNXT_EMAIL`                       | Email address for Internxt login.                                                           |
+| `INTERNXT_HTTPS`                       | Set to `true` to enable HTTPS for WebDAV. Default is `false`.                              |
+| `INTERNXT_PASSWORD`                    | Password for Internxt login.                                                                 |
+| `INTERNXT_SSL_CERT`                   | Path to the SSL certificate for HTTPS (if enabled).                                         |
+| `INTERNXT_SSL_KEY`                    | Path to the SSL key for HTTPS (if enabled).                                               |
+| `INTERNXT_TOTP`                        | TOTP secret for two-factor authentication (optional).                                       |
+| `INTERNXT_WEB_PORT`                    | Port for Internxt WebDAV service. Default is `3005`.                                        |
+| `RCLONE_CONFIG`                        | Path to the rclone configuration file. Default is `/config/rclone.conf`.                    |
+| `RCLONE_GUI_PASS`                      | Password for the rclone Web GUI. Default is `rclone_password`.                              |
+| `RCLONE_GUI_USER`                      | Username for the rclone Web GUI. Default is `rclone_user`.                                  |
+| `RCLONE_SSL_CERT`                      | Path to the SSL certificate for HTTPS (if enabled).                                        |
+| `RCLONE_SSL_KEY`                       | Path to the SSL key for HTTPS (if enabled).                                               |
+| `RCLONE_WEB_GUI_PORT`                  | Port for rclone Web GUI. Default is `5572`.                                                |
+| `CRON_COMMAND`                         | Command to be executed by cron. Default is `rclone sync --create-empty-src-dirs --retries 5 --differ --verbose`. The command will be run with each pair of local and remote paths. |
+| `CRON_SCHEDULE`                        | Cron schedule for running the specified command. Default is an empty string.                |
+| `LOCAL_PATH_1` to `LOCAL_PATH_20`     | Up to 20 local paths where files will be synchronized. Each local path must have a corresponding remote path. |
+| `REMOTE_PATH_1` to `REMOTE_PATH_20`   | Up to 20 remote paths for synchronization with the Internxt service.                       |
 
-## Usage
+## Docker Image
 
-### Build the Docker Image
+The Docker image is available on Docker Hub under the name `cgfm/internxt-cli_rclone`.
 
-To build the Docker image, run:
+## Running the Container
 
-```bash
-docker build -t internxt-cli .
-```
+### Docker Run Command
 
-### Run the Docker Container
-
-To run the Docker container, use the following command:
+You can run the Docker container using the following command:
 
 ```bash
 docker run -e INTERNXT_EMAIL="your_email@example.com" \
            -e INTERNXT_PASSWORD="your_password" \
-           -e INTERNXT_TOTP="your_totp_secret" \
-           -e INTERNXT_WEB_PORT=3005 \
-           -e INTERNXT_HTTPS=true \
-           -e RCLONE_SSL_CERT="/path/to/your/cert.crt" \
-           -e RCLONE_SSL_KEY="/path/to/your/key.key" \
-           -e RCLONE_WEB_GUI_PORT=5572 \
-           -e CRON_COMMAND="your_cron_command" \
            -e CRON_SCHEDULE="*/15 * * * *" \
-           -e RCLONE_GUI_USER="your_rclone_user" \
-           -e RCLONE_GUI_PASS="your_rclone_password" \
-           --rm -v /path/to/your/cert.crt:/path/to/your/cert.crt \
-           -v /path/to/your/key.key:/path/to/your/key.key \
-           -v /local/config/dir:/config \
-           internxt-cli
+           -e REMOTE_PATH_1="remote:path1" \
+           -e LOCAL_PATH_1="/local/path1" \
+           -p 3005:3005 \
+           -p 5572:5572 \
+           --rm cgfm/internxt-cli_rclone
 ```
 
 ### Docker Compose Example
 
-You can also use Docker Compose to manage the container. Below is a sample \`docker-compose.yml\` file:
+Here’s an example of how to use Docker Compose to run the container:
 
 ```yaml
 version: '3.8'
 
 services:
   internxt-cli:
-    image: internxt-cli
+    container_name: internxt-cli_rclone 
+    image: cgfm/internxt-cli_rclone
     environment:
       INTERNXT_EMAIL: your_email@example.com
       INTERNXT_PASSWORD: your_password
-      INTERNXT_TOTP: your_totp_secret
-      INTERNXT_WEB_PORT: 3005
-      INTERNXT_HTTPS: 'true'
-      INTERNXT_SSL_CERT: /path/to/your/cert.crt
-      INTERNXT_SSL_KEY: /path/to/your/key.key
-      RCLONE_WEB_GUI_PORT: 5572
-      CRON_COMMAND: your_cron_command
       CRON_SCHEDULE: '*/15 * * * *'
-      RCLONE_GUI_USER: your_rclone_user
-      RCLONE_GUI_PASS: your_rclone_password
+      REMOTE_PATH_1: remote:path1
+      LOCAL_PATH_1: /local/path1
+    ports:
+      - "3005:3005"
+      - "5572:5572"
     volumes:
-      - /path/to/your/cert.crt:/path/to/your/cert.crt
-      - /path/to/your/key.key:/path/to/your/key.key
       - /local/config/dir:/config
     restart: unless-stopped
 ```
 
-### Notes
+## Building and Executing Cron Commands
 
-- Make sure to replace `/path/to/your/cert.crt` and `/path/to/your/key.key` with the actual paths to your SSL certificate and key files.
-- Adjust the `CRON_COMMAND` and `CRON_SCHEDULE` according to your needs.
+The `CRON_COMMAND` environment variable allows you to specify a custom command that will be executed by cron based on the defined schedule. If no command is provided, the default command used is:
+
+```
+rclone sync --create-empty-src-dirs --retries 5 --differ --verbose
+```
+
+The cron command will be built to include all pairs of local and remote paths defined. For example, if you define `LOCAL_PATH_1` and `REMOTE_PATH_1`, the command will be constructed to run the sync between these two paths.
+
+## Health Check
+
+The health check for the container ensures that:
+- The Internxt service is running.
+- The rclone Web GUI is accessible.
+- The cron service is running and, if a cron schedule is defined, that the specified cron job is set correctly.
+
+If `CRON_SCHEDULE` is not defined (i.e., it is empty), the health check will skip checking the cron service and job presence, allowing the container to remain healthy if the other checks pass.
+
+If any of the checks related to the Internxt service or rclone Web GUI fail, the container will be marked as unhealthy.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This code was generated with the help of Workik AI. The licensing model for the code generated with Workik AI is set to be permissive, allowing for modification and redistribution.
+
+## Links
+
+- [Internxt CLI Documentation](https://internxt.com/docs)
+- [rclone Documentation](https://rclone.org/docs/)
