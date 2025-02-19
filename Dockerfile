@@ -12,21 +12,14 @@ ENV CRON_COMMAND="" \
     RCLONE_CONFIG="/config/rclone.conf" \
     RCLONE_GUI_PASS="rclone_password" \
     RCLONE_GUI_USER="rclone_user" \
-    RCLONE_SSL_CERT="" \
-    RCLONE_SSL_KEY="" \
     RCLONE_WEB_GUI_PORT=5572
 
-# Install the Internxt CLI
-RUN npm install -g @internxt/cli
-
-# Install rclone and other required packages
-RUN apk add --no-cache curl tzdata rclone cron
-
-# Set the timezone
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-# Create directories for the rclone configuration and SSL certs
-RUN mkdir -p /config /root/.internxt-cli/certs
+# Install the Internxt CLI and rclone along with other required packages in a single RUN command
+RUN apk add --no-cache curl tzdata rclone cron && \
+    npm install -g @internxt/cli && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone && \
+    mkdir -p /config /root/.internxt-cli/certs
 
 # Link SSL certificate and key files if provided
 RUN ln -sf $INTERNXT_SSL_CERT /root/.internxt-cli/certs/cert.crt && \
