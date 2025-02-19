@@ -21,8 +21,7 @@ rclone rcd --rc-web-gui \
     --rc-user="${RCLONE_GUI_USER:-rclone_user}" \
     --rc-pass="${RCLONE_GUI_PASS:-rclone_password}" \
     --rc-addr="0.0.0.0:$RCLONE_WEB_GUI_PORT" \
-    --no-auth \
-    ${RCLONE_SSL_CERT:+--config="$RCLONE_CONFIG"} \
+    ${RCLONE_CONFIG:+--config="$RCLONE_CONFIG"} \
     ${RCLONE_SSL_CERT:+--rc-cert="$RCLONE_SSL_CERT"} \
     ${RCLONE_SSL_KEY:+--rc-key="$RCLONE_SSL_KEY"} &
 
