@@ -26,6 +26,9 @@ The following environment variables can be set when running the Docker container
 | `CRON_SCHEDULE`                        | Cron schedule for running the specified command. Default is an empty string.                |
 | `LOCAL_PATH_1` to `LOCAL_PATH_20`     | Up to 20 local paths where files will be synchronized. Each local path must have a corresponding remote path. |
 | `REMOTE_PATH_1` to `REMOTE_PATH_20`   | Up to 20 remote paths for synchronization with the Internxt service.                       |
+| `PUID`                                 | User ID to run the applicaton. Default is `1000`.                                          |
+| `PGID`                                 | Group ID to run the application. Default is `1000`.                                        |
+| `TZ`                                   | Timezone for the application. Default is `Etc/UTC`.                                        |i
 
 ## Docker Image
 
@@ -43,6 +46,9 @@ docker run -e INTERNXT_EMAIL="your_email@example.com" \
            -e CRON_SCHEDULE="*/15 * * * *" \
            -e REMOTE_PATH_1="remote:path1" \
            -e LOCAL_PATH_1="/local/path1" \
+           -e PUID=1000 \
+           -e PGID=1000 \
+           -e TZ="America/New_York" \
            -p 3005:3005 \
            -p 5572:5572 \
            --rm cgfm/internxt-cli_rclone
@@ -65,6 +71,9 @@ services:
       CRON_SCHEDULE: '*/15 * * * *'
       REMOTE_PATH_1: remote:path1
       LOCAL_PATH_1: /local/path1
+      PUID: 1000
+      PGID: 1000
+      TZ: "America/New_York"
     ports:
       - "3005:3005"
       - "5572:5572"
