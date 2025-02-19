@@ -91,11 +91,3 @@ fi
 # Start the cron service
 service cron start
 echo "Cron service started."
-
-# Start WebDAV status monitoring, allowing for long-running commands
-echo "Starting WebDAV status monitoring..."
-while true; do
-    internxt --version
-    internxt webdav status
-    sleep 600  # Wait for 10 minutes (600 seconds) before checking again
-done
