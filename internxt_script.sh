@@ -99,7 +99,13 @@ service cron start
 echo "Cron service started."
 
 # Start log monitoring for rclone and Internxt
+echo ""
+echo ""
+echo "--------------------------------------------------"
 echo "Starting log monitoring for rclone and Internxt..."
+echo "--------------------------------------------------"
+echo ""
+
 RCLONE_LOG="$LOG_DIR/rclone.log"
 
 # Monitor all Internxt log files dynamically
