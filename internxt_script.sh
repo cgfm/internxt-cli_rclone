@@ -101,11 +101,9 @@ echo "Cron service started."
 # Start log monitoring for rclone and Internxt
 echo "Starting log monitoring for rclone and Internxt..."
 RCLONE_LOG="$LOG_DIR/rclone.log"
-INTERNXT_LOG_DIR=$(internxt logs | grep -oP '(?<=Logs directory: ).*')
 
 # Monitor all Internxt log files dynamically
-INTERNXT_LOG_FILES=$(find "$INTERNXT_LOG_DIR" -type f)
-
+INTERNXT_LOG_FILES=$(find "/root/.internxt-cli/logs" -type f)
 # Use tail to follow both logs
 {
     tail -f "$RCLONE_LOG" &  # Run rclone log monitoring in the background
@@ -115,15 +113,16 @@ INTERNXT_LOG_FILES=$(find "$INTERNXT_LOG_DIR" -type f)
     wait  # Wait for all background processes to finish
 } | while read -r line; do
     # Enhanced logic to differentiate between rclone and internxt logs
-    if [[ "$line" == *"ERROR"* || "$line" == *"INFO"* || "$line" == *"DEBUG"* ]]; then
-        if [[ "$line" == *"rclone"* ]]; then
-            echo "[rclone] $line"
-        else
-            echo "[internxt] $line"
-        fi
+    if echo "$line" | jq empty >/dev/null 2>&1; then
+        # If the line is JSON, parse it and extract the desired fields
+        timestamp=$(echo "$line" | jq -r '.timestamp')
+        level=$(echo "$line" | jq -r '.level' | tr '[:lower:]' '[:upper:]')
+        service=$(echo "$line" | jq -r '.service')
+        message=$(echo "$line" | jq -r '.message')
+        echo "[internxt] $timestamp $level $service $message"
     else
-        # If the line does not match known patterns, you could choose to ignore or log differently
-        echo "[unknown] $line"
+        # If the line is not JSON, it is from rclone
+        echo "[rclone] $line"
     fi
 done &
 

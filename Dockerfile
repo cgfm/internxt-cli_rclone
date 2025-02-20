@@ -19,7 +19,7 @@ ENV RCLONE_WEB_GUI_PORT=5572
 
 # Install required packages including Node.js and npm
 RUN apt-get update && \
-    apt-get install -y curl gnupg2 tzdata && \
+    apt-get install -y curl gnupg2 tzdata jq && \
     curl -fsSL https://deb.nodesource.com/setup_23.x | bash - && \
     apt-get install -y nodejs rclone cron && \
     apt-get clean && \
