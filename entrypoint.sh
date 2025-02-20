@@ -6,5 +6,5 @@ if [ "$DEBUG" == "true" ]; then
     exec /bin/bash  # Start an interactive shell for debugging
 else
     echo "Running internxt_script.sh..."
-    exec /path/to/internxt_script.sh  # Replace with the actual path to the internxt_script.sh
+    exec /usr/local/bin/internxt_script.sh  # Replace with the actual path to the internxt_script.sh
 fi
