@@ -21,7 +21,7 @@ fi
 
 # Configure rclone to use the Internxt WebDAV server
 echo "Configuring rclone internxt webdav remote with $PROTOCOL..."
-if rclone config create internxt webdav \
+if rclone config create Internxt webdav \
     url="${PROTOCOL}://localhost:$INTERNXT_WEB_PORT/" \
     vendor="other" \
     user="$INTERNXT_EMAIL" \
