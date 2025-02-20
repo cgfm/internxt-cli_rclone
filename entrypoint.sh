@@ -2,6 +2,10 @@
 
 set -e
 
+if [ "$STOPATSTART" = "true" ]; then
+    tail -f /dev/null
+else
+
 # Ensure required environment variables are set
 if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
     echo "Error: INTERNXT_EMAIL and INTERNXT_PASSWORD must be set."
