@@ -26,7 +26,7 @@ RUN apk add --no-cache curl tzdata rclone cron
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Create directories for the rclone configuration and SSL certs
-RUN mkdir -p /config /root/.internxt-cli/certs
+RUN mkdir -p /config/log /root/.internxt-cli/certs
 
 # Link SSL certificate and key files if provided
 RUN ln -sf $INTERNXT_SSL_CERT /root/.internxt-cli/certs/cert.crt && \

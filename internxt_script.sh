@@ -2,6 +2,8 @@
 
 set -e
 
+rclone_logging_options="-v --log-file=/config/log/rclone.log --log-format=date,time,UTC"
+
 # Ensure required environment variables are set
 if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
     echo "Error: INTERNXT_EMAIL and INTERNXT_PASSWORD must be set."
@@ -21,6 +23,7 @@ rclone rcd --rc-web-gui \
     --rc-user="${RCLONE_GUI_USER:-rclone_user}" \
     --rc-pass="${RCLONE_GUI_PASS:-rclone_password}" \
     --rc-addr="0.0.0.0:$RCLONE_WEB_GUI_PORT" \
+    "${rclone_logging_options}" \
     ${RCLONE_CONFIG:+--config="$RCLONE_CONFIG"} \
     ${RCLONE_SSL_CERT:+--rc-cert="$RCLONE_SSL_CERT"} \
     ${RCLONE_SSL_KEY:+--rc-key="$RCLONE_SSL_KEY"} &
@@ -60,20 +63,22 @@ if [ -n "$CRON_SCHEDULE" ]; then
         CRON_COMMAND="rclone sync --create-empty-src-dirs --retries 5 --differ --verbose"
     fi
 
+    full_cron_command = ""
+
     # Loop to append remote and local paths to the CRON_COMMAND
     for i in {1..20}; do
         remote_var="REMOTE_PATH_$i"
         local_var="LOCAL_PATH_$i"
 
         if [ ! -z "${!remote_var}" ] && [ ! -z "${!local_var}" ]; then
-            CRON_COMMAND="${CRON_COMMAND} ${!remote_var} ${!local_var}"
+            full_cron_command="${full_cron_command} && ${CRON_COMMAND} ${rclone_logging_options} ${!remote_var} ${!local_var}"
         fi
     done
 
     # Add command to user-specific crontab with flock to prevent concurrent runs
-    echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $CRON_COMMAND" >> /etc/crontab
+    echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $full_cron_command" >> /etc/crontab
 
-    echo "Complete cron command: $CRON_COMMAND"
+    echo "Complete cron command: $full_cron_command"
 
     service cron start
     echo "Cron service started."
@@ -82,10 +87,26 @@ else
 fi
 
 # Start WebDAV status monitoring, allowing for long-running commands
-echo "Starting WebDAV status monitoring..."
-while true; do
-    internxt --version
-    internxt webdav status
-    rclone rcd --rc-addr="localhost:$RCLONE_WEB_GUI_PORT" --rc-user="$RCLONE_GUI_USER" --rc-pass="$RCLONE_GUI_PASS" status
-    sleep 600  # Wait for 10 minutes (600 seconds) before checking again
+echo "Starting log monitoring for rclone and Internxt..."
+RCLONE_LOG="/config/log/rclone.log"
+INTERNXT_LOG_DIR=$(internxt logs | grep -oP '(?<=Logs directory: ).*')
+
+# Monitor all Internxt log files dynamically
+INTERNXT_LOG_FILES=$(find "$INTERNXT_LOG_DIR" -type f)
+
+# Use tail to follow both logs
+{
+    tail -f "$RCLONE_LOG" &  # Run rclone log monitoring in the background
+    for log_file in $INTERNXT_LOG_FILES; do
+        tail -f "$log_file" &  # Run each internxt log monitoring in the background
+    done
+    wait  # Wait for all background processes to finish
+} | while read -r line; do
+    # Check if the line is coming from the Rclone log
+    if [[ "$line" == *"rclone"* ]]; then
+        echo "[rclone] $line"
+    else
+        # If it's from an Internxt log file
+        echo "[intnxt] $line"
+    fi
 done
