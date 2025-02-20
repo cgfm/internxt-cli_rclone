@@ -2,7 +2,7 @@
 
 set -e
 
-rclone_logging_options="-v --log-file=/config/log/rclone.log --log-format=date,time,UTC"
+rclone_logging_options="-v --log-file /config/log/rclone.log --log-format date,time,UTC"
 
 # Ensure required environment variables are set
 if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
