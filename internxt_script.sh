@@ -8,10 +8,17 @@ if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
     exit 1
 fi
 
+# Determine the protocol based on the INTERNXT_HTTPS variable
+if [ "$INTERNXT_HTTPS" = "true" ]; then
+    PROTOCOL="https"
+else
+    PROTOCOL="http"
+fi
+
 # Configure rclone to use the Internxt WebDAV server
-echo "Configuring rclone internxt webdav remote..."
+echo "Configuring rclone internxt webdav remote with $PROTOCOL..."
 rclone config create internxt webdav \
-    url="http://localhost:$INTERNXT_WEB_PORT/" \
+    url="${PROTOCOL}://localhost:$INTERNXT_WEB_PORT/" \
     vendor="other" \
     user="$INTERNXT_EMAIL" \
     pass="$INTERNXT_PASSWORD"
@@ -68,7 +75,7 @@ if [ -n "$CRON_SCHEDULE" ]; then
         local_var="LOCAL_PATH_$i"
 
         if [ ! -z "${!remote_var}" ] && [ ! -z "${!local_var}" ]; then
-            full_cron_command="${full_cron_command} && ${CRON_COMMAND} ${!remote_var} ${!local_var} --log-file=/config/log/rclone.log --log-format=date,time,UTC"
+            full_cron_command="${full_cron_command} && ${CRON_COMMAND} ${!remote_var} ${!local_var} --log-file=\"/config/log/rclone.log\" --log-format=\"date,time,UTC\""
         fi
     done
 
