@@ -121,3 +121,8 @@ INTERNXT_LOG_FILES=$(find "$INTERNXT_LOG_DIR" -type f)
         echo "[unknown] $line"
     fi
 done
+echo "Log loop exited. Keeping the container running."
+# Keep the container running
+while true; do
+    sleep 60  # Sleep for 60 seconds
+done
