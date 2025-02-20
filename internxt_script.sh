@@ -29,16 +29,18 @@ rclone config create internxt webdav \
 
 # Configure rclone webgui
 echo "Configuring rclone webgui..."
-rclone rcd --rc-web-gui \
-    --rc-user="${RCLONE_GUI_USER:-rclone_user}" \
-    --rc-pass="${RCLONE_GUI_PASS:-rclone_password}" \
-    --rc-addr="0.0.0.0:$RCLONE_WEB_GUI_PORT" \
-    --log-file="$LOG_DIR/rclone.log" \
-    --log-format="date,time,UTC" \
-    ${RCLONE_CONFIG:+--config="$RCLONE_CONFIG"} \
-    ${RCLONE_SSL_CERT:+--rc-cert="$RCLONE_SSL_CERT"} \
-    ${RCLONE_SSL_KEY:+--rc-key="$RCLONE_SSL_KEY"} &
-
+rclone rcd --rc-web-gui-no-open-browser \
+    --rc-web-gui-update \
+    --rc-no-auth \
+    --rc-user ${RCLONE_GUI_USER:-rclone_user} \
+    --rc-pass ${RCLONE_GUI_PASS:-rclone_password} \
+    --rc-addr :$RCLONE_WEB_GUI_PORT \
+    --log-file $LOG_DIR/rclone.log \
+    --log-format date,time,UTC \
+    ${RCLONE_CONFIG:+--config $RCLONE_CONFIG} \
+    ${RCLONE_SSL_CERT:+--rc-cert $RCLONE_SSL_CERT} \
+    ${RCLONE_SSL_KEY:+--rc-key $RCLONE_SSL_KEY} &
+    
 # Handle TOTP for two-factor authentication
 if [ -n "$INTERNXT_TOTP" ]; then
     echo "Generating TOTP..."
@@ -71,8 +73,8 @@ fi
 if [ -n "$CRON_COMMAND" ]; then
     echo "Using provided CRON_COMMAND: $CRON_COMMAND"
 else
-    echo "No CRON_COMMAND provided. Using default rclone sync command."
     CRON_COMMAND="rclone sync --create-empty-src-dirs --retries 5 --differ --verbose"
+    echo "Using default command $CRON_COMMAND"
 fi
 
 full_cron_command=""
@@ -99,12 +101,12 @@ service cron start
 echo "Cron service started."
 
 # Start log monitoring for rclone and Internxt
-echo ""
-echo ""
+echo " "
+echo " "
 echo "--------------------------------------------------"
 echo "Starting log monitoring for rclone and Internxt..."
 echo "--------------------------------------------------"
-echo ""
+echo " "
 
 RCLONE_LOG="$LOG_DIR/rclone.log"
 
@@ -131,8 +133,3 @@ INTERNXT_LOG_FILES=$(find "/root/.internxt-cli/logs" -type f)
         echo "[rclone] $line"
     fi
 done &
-
-# Keep the container running
-while true; do
-    sleep 60  # Sleep for 60 seconds
-done
