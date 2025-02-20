@@ -64,7 +64,7 @@ if [ -n "$CRON_SCHEDULE" ]; then
         echo "Using provided CRON_COMMAND: $CRON_COMMAND"
     else
         echo "No CRON_COMMAND provided. Using default rclone sync command."
-        CRON_COMMAND="rclone sync --create-empty-src-dirs --retries 5 --differ --verbose"
+        CRON_COMMAND="rclone sync"
     fi
 
     full_cron_command=""
@@ -76,9 +76,9 @@ if [ -n "$CRON_SCHEDULE" ]; then
 
         if [ ! -z "${!remote_var}" ] && [ ! -z "${!local_var}" ]; then
             if [ -z "$full_cron_command" ]; then
-                full_cron_command="${CRON_COMMAND} ${!remote_var} ${!local_var} --log-file=/config/log/rclone.log --log-format=date,time,UTC"
+                full_cron_command="${CRON_COMMAND} --create-empty-src-dirs --retries 5 --differ --verbose --log-file=/config/log/rclone.log --log-format=date,time,UTC ${!remote_var} ${!local_var}"
             else
-                full_cron_command="${full_cron_command} && ${CRON_COMMAND} ${!remote_var} ${!local_var} --log-file=/config/log/rclone.log --log-format=date,time,UTC"
+                full_cron_command="${full_cron_command} && ${CRON_COMMAND} --create-empty-src-dirs --retries 5 --differ --verbose --log-file=/config/log/rclone.log --log-format=date,time,UTC ${!remote_var} ${!local_var}"
             fi
         fi
     done
