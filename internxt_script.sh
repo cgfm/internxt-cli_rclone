@@ -93,7 +93,7 @@ done
 
 # Add command to user-specific crontab with flock to prevent concurrent runs
 echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $full_cron_command" >> /etc/crontab
-echo "Complete cron command: $full_cron_command"
+# echo "Complete cron command: $full_cron_command"
 
 service cron start
 echo "Cron service started."
