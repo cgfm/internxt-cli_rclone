@@ -21,12 +21,16 @@ fi
 
 # Configure rclone to use the Internxt WebDAV server
 echo "Configuring rclone internxt webdav remote with $PROTOCOL..."
-rclone config create internxt webdav \
+if rclone config create internxt webdav \
     url="${PROTOCOL}://localhost:$INTERNXT_WEB_PORT/" \
     vendor="other" \
     user="$INTERNXT_EMAIL" \
-    pass="$INTERNXT_PASSWORD"
-
+    pass="$INTERNXT_PASSWORD" >/dev/null 2>&1; then
+    echo "Successfully configured rclone internxt webdav remote."
+else
+    echo "Failed to configure rclone internxt webdav remote."
+    exit 1
+fi
 # Configure rclone webgui
 echo "Configuring rclone webgui..."
 rclone rcd --rc-web-gui-no-open-browser \
