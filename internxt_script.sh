@@ -75,7 +75,11 @@ if [ -n "$CRON_SCHEDULE" ]; then
         local_var="LOCAL_PATH_$i"
 
         if [ ! -z "${!remote_var}" ] && [ ! -z "${!local_var}" ]; then
-            full_cron_command="${full_cron_command} && ${CRON_COMMAND} ${!remote_var} ${!local_var} --log-file=\"/config/log/rclone.log\" --log-format=\"date,time,UTC\""
+            if [ -z "$full_cron_command" ]; then
+                full_cron_command="${CRON_COMMAND} ${!remote_var} ${!local_var} --log-file=/config/log/rclone.log --log-format=date,time,UTC"
+            else
+                full_cron_command="${full_cron_command} && ${CRON_COMMAND} ${!remote_var} ${!local_var} --log-file=/config/log/rclone.log --log-format=date,time,UTC"
+            fi
         fi
     done
 
