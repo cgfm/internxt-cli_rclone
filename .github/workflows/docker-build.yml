@@ -6,6 +6,8 @@ on:
       - main  # Set the source branch to 'main'
     paths-ignore:
       - README.md  # Ignore changes to README.md
+      - .git/**
+      - .github/**
 
 jobs:
   build:
