@@ -102,25 +102,25 @@ INTERNXT_LOG_DIR=$(internxt logs | grep -oP '(?<=Logs directory: ).*')
 INTERNXT_LOG_FILES=$(find "$INTERNXT_LOG_DIR" -type f)
 
 # Use tail to follow both logs
-{
-    tail -f "$RCLONE_LOG" &  # Run rclone log monitoring in the background
-    for log_file in $INTERNXT_LOG_FILES; do
-        tail -f "$log_file" &  # Run each Internxt log monitoring in the background
-    done
-    wait  # Wait for all background processes to finish
-} | while read -r line; do
+#{
+#    tail -f "$RCLONE_LOG" &  # Run rclone log monitoring in the background
+#    for log_file in $INTERNXT_LOG_FILES; do
+#        tail -f "$log_file" &  # Run each Internxt log monitoring in the background
+#    done
+#    wait  # Wait for all background processes to finish
+#} | while read -r line; do
     # Enhanced logic to differentiate between rclone and internxt logs
-    if [[ "$line" == *"ERROR"* || "$line" == *"INFO"* || "$line" == *"DEBUG"* ]]; then
-        if [[ "$line" == *"rclone"* ]]; then
-            echo "[rclone] $line"
-        else
-            echo "[internxt] $line"
-        fi
-    else
-        # If the line does not match known patterns, you could choose to ignore or log differently
-        echo "[unknown] $line"
-    fi
-done
+#    if [[ "$line" == *"ERROR"* || "$line" == *"INFO"* || "$line" == *"DEBUG"* ]]; then
+#        if [[ "$line" == *"rclone"* ]]; then
+#            echo "[rclone] $line"
+#        else
+#            echo "[internxt] $line"
+#        fi
+#    else
+#        # If the line does not match known patterns, you could choose to ignore or log differently
+#        echo "[unknown] $line"
+#    fi
+#done
 echo "Log loop exited. Keeping the container running."
 # Keep the container running
 while true; do
