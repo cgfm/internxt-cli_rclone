@@ -2,12 +2,10 @@ name: Build and Push Docker Image
 
 on:
   push:
-    paths-ignore:
-      - README.md  # Ignore changes to README.md
-    paths:
-      - '**/*'  # Trigger on all other changes
     branches:
       - main  # Set the source branch to 'main'
+    paths-ignore:
+      - README.md  # Ignore changes to README.md
 
 jobs:
   build:
