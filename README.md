@@ -92,6 +92,47 @@ rclone sync --create-empty-src-dirs --retries 5 --differ --verbose REMOTE_PATH_2
 rclone sync --create-empty-src-dirs --retries 5 --differ --verbose REMOTE_PATH_n LOCAL_PATH_n
 ```
 
+## rClone Configuration
+
+This project includes a default rClone WebDAV remote named **Internxt**, which is configured to connect to the local Internxt CLI. This setup enables seamless file management within the Internxt service.
+
+### Default Remote Configuration
+
+The default **Internxt** remote is configured with the following settings:
+- **Type**: WebDAV
+- **Vendor**: Other
+- **URL**: `http://localhost:<INTERNXT_WEB_PORT>/` or `https://localhost:<INTERNXT_WEB_PORT>/` (depending on the value of the `INTERNXT_HTTPS` environment variable)
+- **User**: Set to the value of the `INTERNXT_EMAIL` environment variable.
+- **Password**: Set to the value of the `INTERNXT_PASSWORD` environment variable.
+
+### Setting Up Additional Remotes
+
+To set up additional remotes in rClone, you can follow these steps:
+
+1. Open a terminal and run the following command to access the rClone configuration menu:
+   ```bash
+   rclone config
+   ```
+
+2. Follow the prompts to create a new remote. You will be asked to specify the type of storage and provide the necessary authentication details.
+
+3. After completing the configuration, your new remote will be available for use in rClone commands.
+
+### Configuring Remotes via Web GUI
+
+If you prefer a graphical user interface, you can configure new remotes using the rClone web GUI. Here’s how:
+
+1. Open your web browser and go to the rClone web GUI, typically at `http://localhost:<RCLONE_WEB_GUI_PORT>`.
+
+2. Log in with your credentials if authentication is enabled.
+
+3. Navigate to the **Configuration** section in the web GUI.
+
+4. Select the option to add a new remote, and follow the prompts to specify the remote type and connection details.
+
+5. Save your configuration, and the new remote will be ready for use in your rClone commands.
+
+With the web GUI, managing your remotes becomes a straightforward process without needing to use the command line.
 
 ## SSL Configuration
 
