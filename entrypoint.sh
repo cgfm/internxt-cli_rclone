@@ -2,12 +2,9 @@
 
 set -e
 
-if [ "$DEBUG" = "true" ]; then
-    echo "DEBUG mode is enabled. Skipping STOPATSTART behavior."
-else
-    if [ "$STOPATSTART" = "true" ]; then
-        tail -f /dev/null
-    fi
+if [ "$STOPATSTART" = "true" ]; then
+    echo "STOPATSTART mode is enabled."
+    tail -f /dev/null
 fi
 
 # Ensure required environment variables are set
