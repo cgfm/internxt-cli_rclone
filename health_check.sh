@@ -21,7 +21,7 @@ else
 fi
 
 # Check if the rclone Web GUI is running and accessible
-if ! curl -s --head --user "$RCLONE_GUI_USER:$RCLONE_GUI_PASS" "$WEB_GUI_URL" | grep -q "200 OK"; then
+if ! curl --connect-timeout 5 -s --head --user "$RCLONE_GUI_USER:$RCLONE_GUI_PASS" "$WEB_GUI_URL" | grep -q "200 OK"; then
     error_exit "rclone Web GUI is not accessible."
 fi
 
