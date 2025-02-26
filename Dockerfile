@@ -1,6 +1,7 @@
 FROM ubuntu:22.04
 
 # Set environment variables
+ENV STOPATSTART="false"
 ENV CRON_COMMAND=""
 ENV CRON_SCHEDULE=""
 ENV DEBUG="false"
