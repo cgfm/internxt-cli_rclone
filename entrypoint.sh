@@ -141,3 +141,4 @@ INTERNXT_LOG_FILES=$(find "/root/.internxt-cli/logs" -type f)
         echo "[rclone] $line"
     fi
 done &
+fi
