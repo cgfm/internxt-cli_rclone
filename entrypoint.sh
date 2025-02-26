@@ -2,6 +2,14 @@
 
 set -e
 
+if [ "$DEBUG" = "true" ]; then
+    echo "DEBUG mode is enabled. Skipping STOPATSTART behavior."
+else
+    if [ "$STOPATSTART" = "true" ]; then
+        tail -f /dev/null
+    fi
+fi
+
 # Ensure required environment variables are set
 if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
     echo "Error: INTERNXT_EMAIL and INTERNXT_PASSWORD must be set."
@@ -31,6 +39,7 @@ else
     echo "Failed to configure rclone internxt webdav remote."
     exit 1
 fi
+
 # Configure rclone webgui
 echo "Configuring rclone webgui..."
 rclone rcd --rc-web-gui-no-open-browser \
@@ -44,7 +53,7 @@ rclone rcd --rc-web-gui-no-open-browser \
     ${RCLONE_CONFIG:+--config $RCLONE_CONFIG} \
     ${RCLONE_SSL_CERT:+--rc-cert $RCLONE_SSL_CERT} \
     ${RCLONE_SSL_KEY:+--rc-key $RCLONE_SSL_KEY} &
-    
+
 # Handle TOTP for two-factor authentication
 if [ -n "$INTERNXT_TOTP" ]; then
     echo "Generating TOTP..."
@@ -97,25 +106,29 @@ for i in {1..20}; do
     fi
 done
 
-# Add command to user-specific crontab with flock to prevent concurrent runs
-echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $full_cron_command" >> /etc/crontab
-# echo "Complete cron command: $full_cron_command"
-
-service cron start
-echo "Cron service started."
+if [ -n "$CRON_SCHEDULE" ]; then
+    # If DEBUG is not set, add command to user-specific crontab with flock to prevent concurrent runs
+    if [ -z "$DEBUG" ]; then
+        echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $full_cron_command" >> /etc/crontab
+        echo "Complete cron command: $full_cron_command"
+        service cron start
+        echo "Cron service started."
+    else
+        echo "DEBUG mode is enabled. The cron job will not be started."
+        echo "Full cron command: $full_cron_command"
+    fi
+fi
 
 # Start log monitoring for rclone and Internxt
-echo " "
-echo " "
 echo "--------------------------------------------------"
 echo "Starting log monitoring for rclone and Internxt..."
 echo "--------------------------------------------------"
-echo " "
 
 RCLONE_LOG="$LOG_DIR/rclone.log"
 
 # Monitor all Internxt log files dynamically
 INTERNXT_LOG_FILES=$(find "/root/.internxt-cli/logs" -type f)
+
 # Use tail to follow both logs
 {
     tail -f "$RCLONE_LOG" &  # Run rclone log monitoring in the background
