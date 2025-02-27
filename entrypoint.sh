@@ -62,13 +62,28 @@ else
     internxt login --email="$INTERNXT_EMAIL" --password="$INTERNXT_PASSWORD" --non-interactive
 fi
 
+# Write the WebDAV configuration to the config file
+WEBDAV_CONFIG_PATH="$HOME/.internxt-cli/config.webdav.inxt"
+
+if [ "$DEBUG" = "true" ]; then
+    echo "Writing WebDAV configuration to $WEBDAV_CONFIG_PATH..."
+fi
+mkdir -p "$(dirname "$WEBDAV_CONFIG_PATH")"  # Ensure the directory exists
+
+# Create JSON configuration
+if [ "$INTERNXT_HTTPS" = "true" ]; then
+    echo "{\"port\":\"$INTERNXT_WEB_PORT\",\"protocol\":\"https\"}" > "$WEBDAV_CONFIG_PATH"
+else
+    echo "{\"port\":\"$INTERNXT_WEB_PORT\",\"protocol\":\"http\"}" > "$WEBDAV_CONFIG_PATH"
+fi
+
+
+if [ "$DEBUG" = "true" ]; then
+    echo "WebDAV configuration written successfully."
+fi
+
 # Enable WebDAV
 echo "Enabling WebDAV..."
-if [ "$INTERNXT_HTTPS" = "true" ]; then
-    internxt webdav-config --https --port="$INTERNXT_WEB_PORT"
-else
-    internxt webdav-config --http --port="$INTERNXT_WEB_PORT"
-fi
 internxt webdav enable
 
 # Check if CRON_SCHEDULE is set, default to every 15 minutes if not
@@ -147,6 +162,6 @@ INTERNXT_LOG_FILES=$(find "/root/.internxt-cli/logs" -type f)
         echo "[rclone] $line"
     fi
 done
- 
+
 # Wait indefinitely to keep the script running
 wait
