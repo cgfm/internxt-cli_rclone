@@ -98,7 +98,7 @@ fi
 if [ -n "$CRON_COMMAND" ]; then
     echo "Using provided CRON_COMMAND: $CRON_COMMAND"
 else
-    CRON_COMMAND="rclone sync --create-empty-src-dirs --retries 5 --differ --verbose"
+    CRON_COMMAND="rclone sync --create-empty-src-dirs --retries 5 --verbose"
     echo "Using default command $CRON_COMMAND"
 fi
 
