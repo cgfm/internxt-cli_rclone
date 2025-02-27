@@ -139,7 +139,8 @@ for i in {1..20}; do
         if [ -z "$full_cron_command" ]; then
             full_cron_command="${CRON_COMMAND} ${!remote_var} ${!local_var} --log-file=$LOG_DIR/rclone.log --log-format=date,time,UTC"
         else
-            full_cron_command="${full_cron_command} && ${CRON_COMMAND} ${!remote_var} ${!local_var} --log-file=$LOG_DIR/rclone.log --log-format=date,time,UTC"
+            full_cron_command="${full_cron_command} && \\
+    ${CRON_COMMAND} ${!remote_var} ${!local_var} --log-file=$LOG_DIR/rclone.log --log-format=date,time,UTC"
         fi
     fi
 done
@@ -150,7 +151,7 @@ if [ -n "$CRON_SCHEDULE" ]; then
         echo "Full cron command: $full_cron_command"
     else
         echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $full_cron_command" >> /etc/crontab
-        echo "Complete cron command: $full_cron_command"
+        echo -e "Complete cron command: \n    $full_cron_command"
         service cron start
         echo "Cron service started."
     fi
