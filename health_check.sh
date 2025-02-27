@@ -6,17 +6,18 @@ error_exit() {
     exit 1
 }
 
-# Check if Internxt is running
-if ! pgrep -f "internxt" > /dev/null; then
-    error_exit "Internxt is not running."
+# Check the status of the Internxt WebDAV server
+WEBDAV_STATUS=$(internxt webdav status)
+
+# Verify if the WebDAV server is online
+if [[ "$WEBDAV_STATUS" != *"online"* ]]; then
+    error_exit "Internxt WebDAV server is not running. Status: $WEBDAV_STATUS"
 fi
 
 # Determine whether to use HTTP or HTTPS for rclone Web GUI
 if [ -n "$RCLONE_SSL_CERT" ] && [ -n "$RCLONE_SSL_KEY" ]; then
-    echo "SSL certificates provided. Checking rclone Web GUI via HTTPS..."
     WEB_GUI_URL="https://localhost:$RCLONE_WEB_GUI_PORT"
 else
-    echo "No SSL certificates provided. Checking rclone Web GUI via HTTP..."
     WEB_GUI_URL="http://localhost:$RCLONE_WEB_GUI_PORT"
 fi
 
@@ -35,8 +36,6 @@ if [ -n "$CRON_SCHEDULE" ]; then
     if ! crontab -l | grep -q "$CRON_SCHEDULE"; then
         error_exit "No cron jobs found for the specified schedule."
     fi
-else
-    echo "CRON_SCHEDULE is empty. Skipping cron job checks."
 fi
 
 # If all checks pass
