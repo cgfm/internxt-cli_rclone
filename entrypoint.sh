@@ -146,4 +146,7 @@ INTERNXT_LOG_FILES=$(find "/root/.internxt-cli/logs" -type f)
         # If the line is not JSON, it is from rclone
         echo "[rclone] $line"
     fi
-done &
+done
+ 
+# Wait indefinitely to keep the script running
+wait
