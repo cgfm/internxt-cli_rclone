@@ -119,15 +119,14 @@ for i in {1..20}; do
 done
 
 if [ -n "$CRON_SCHEDULE" ]; then
-    # If DEBUG is not set, add command to user-specific crontab with flock to prevent concurrent runs
-    if [ -z "$DEBUG" ]; then
+    if [ "$DEBUG" = "true" ]; then
+        echo "DEBUG mode is enabled. The cron job will not be started."
+        echo "Full cron command: $full_cron_command"
+    else
         echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $full_cron_command" >> /etc/crontab
         echo "Complete cron command: $full_cron_command"
         service cron start
         echo "Cron service started."
-    else
-        echo "DEBUG mode is enabled. The cron job will not be started."
-        echo "Full cron command: $full_cron_command"
     fi
 fi
 
