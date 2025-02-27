@@ -2,6 +2,29 @@
 
 set -e
 
+# Function to rotate rClone logs
+rotate_logs() {
+    if [ "$RCLONE_KEEP_LOGFILES" != "true" ]; then
+        LOCAL_LOG_FILES=("$LOG_DIR/rclone.log")
+        if [ -n "$RCLONE_LOGFILE_COUNT" ]; then
+            MAX_LOG_FILES="$RCLONE_LOGFILE_COUNT"
+        else
+            MAX_LOG_FILES=3  # Default log file count
+        fi
+
+        # Rotate logs
+        for ((i=MAX_LOG_FILES; i>0; i--)); do
+            if [ $i -eq $MAX_LOG_FILES ]; then
+                # Rename the current log to log.1
+                mv "$LOG_DIR/rclone.log" "$LOG_DIR/rclone.log.$i" 2>/dev/null || true
+            else
+                # Rename older logs
+                mv "$LOG_DIR/rclone.log.$i" "$LOG_DIR/rclone.log.$((i+1))" 2>/dev/null || true
+            fi
+        done
+    fi
+}
+
 if [ "$STOPATSTART" = "true" ]; then
     echo "STOPATSTART mode is enabled."
     tail -f /dev/null
@@ -23,6 +46,9 @@ if [ "$INTERNXT_HTTPS" = "true" ]; then
 else
     PROTOCOL="http"
 fi
+
+# Call the log rotation function
+rotate_logs
 
 # Configure rclone to use the Internxt WebDAV server
 echo "Configuring rclone internxt webdav remote with $PROTOCOL..."
