@@ -2,6 +2,28 @@
 
 set -e
 
+if [ "$STOPATSTART" = "true" ]; then
+    echo "STOPATSTART mode is enabled."
+    tail -f /dev/null
+fi
+
+# Ensure required environment variables are set
+if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
+    echo "Error: INTERNXT_EMAIL and INTERNXT_PASSWORD must be set."
+    exit 1
+fi
+
+# Create log directory if it doesn't exist
+LOG_DIR="/config/log"
+mkdir -p "$LOG_DIR"
+
+# Determine the protocol based on the INTERNXT_HTTPS variable
+if [ "$INTERNXT_HTTPS" = "true" ]; then
+    PROTOCOL="https"
+else
+    PROTOCOL="http"
+fi
+
 # Function to rotate rClone logs
 rotate_logs() {
     if [ "$RCLONE_KEEP_LOGFILES" != "true" ]; then
@@ -24,28 +46,6 @@ rotate_logs() {
         done
     fi
 }
-
-if [ "$STOPATSTART" = "true" ]; then
-    echo "STOPATSTART mode is enabled."
-    tail -f /dev/null
-fi
-
-# Ensure required environment variables are set
-if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
-    echo "Error: INTERNXT_EMAIL and INTERNXT_PASSWORD must be set."
-    exit 1
-fi
-
-# Create log directory if it doesn't exist
-LOG_DIR="/config/log"
-mkdir -p "$LOG_DIR"
-
-# Determine the protocol based on the INTERNXT_HTTPS variable
-if [ "$INTERNXT_HTTPS" = "true" ]; then
-    PROTOCOL="https"
-else
-    PROTOCOL="http"
-fi
 
 # Call the log rotation function
 rotate_logs
