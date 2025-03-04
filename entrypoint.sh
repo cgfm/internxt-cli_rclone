@@ -137,10 +137,10 @@ for i in {1..20}; do
 
     if [ ! -z "${!remote_var}" ] && [ ! -z "${!local_var}" ]; then
         if [ -z "$full_cron_command" ]; then
-            full_cron_command="${CRON_COMMAND} ${!local_var} ${!remote_var} --log-file=$LOG_DIR/rclone.log --log-format=date,time,UTC"
+            full_cron_command="${CRON_COMMAND} ${!local_var} ${!remote_var} --log-file $LOG_DIR/rclone.log --log-format date,time,UTC"
         else
             full_cron_command="${full_cron_command} && \\
-${CRON_COMMAND} ${!local_var} ${!remote_var} --log-file=$LOG_DIR/rclone.log --log-format=date,time,UTC"
+${CRON_COMMAND} ${!local_var} ${!remote_var} --log-file $LOG_DIR/rclone.log --log-format date,time,UTC"
         fi
     fi
 done
