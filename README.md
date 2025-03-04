@@ -16,11 +16,12 @@ The following environment variables can be set when running the Docker container
 | `INTERNXT_TOTP`                        | TOTP secret for two-factor authentication (optional).                                       |
 | `INTERNXT_WEB_PORT`                    | Port for Internxt WebDAV service. Default is `3005`.                                        |
 | `RCLONE_CONFIG`                        | Path to the rclone configuration file. Default is `/config/rclone.conf`.                    |
-| `RCLONE_GUI_PASS`                      | Password for the rclone Web GUI. Default is `rclone_password`.                              |
-| `RCLONE_GUI_USER`                      | Username for the rclone Web GUI. Default is `rclone_user`.                                  |
 | `RCLONE_SSL_CERT`                      | Path to the SSL certificate for HTTPS (if enabled).                                        |
 | `RCLONE_SSL_KEY`                       | Path to the SSL key for HTTPS (if enabled).                                               |
 | `RCLONE_WEB_GUI_PORT`                  | Port for rclone Web GUI. Default is `5572`.                                                |
+| `RCLONE_WEB_GUI_SERVE`                      | Optional. Set to false to disable the rClone Web GUI.                            |
+| `RCLONE_WEB_GUI_PASS`                      | Password for the rclone Web GUI (optional). If not pass and user are set it won't be used.                              |
+| `RCLONE_WEB_GUI_USER`                      | Username for the rclone Web GUI (optional). If not pass and user are set it won't be used.                                  |
 | `CRON_COMMAND`                         | Command to be executed by cron. Default is `rclone sync --create-empty-src-dirs --retries 5 --differ --verbose`. The command will be run with each pair of local and remote paths. |
 | `CRON_SCHEDULE`                        | Cron schedule for running the specified command. Default is an empty string.                |
 | `LOCAL_PATH_1` to `LOCAL_PATH_20`     | Up to 20 local paths where files will be synchronized. Each local path must have a corresponding remote path. |
@@ -80,16 +81,16 @@ services:
 The `CRON_COMMAND` environment variable allows you to specify a custom command that will be executed by cron based on the defined schedule. If no command is provided, the default command used is:
 
 ```
-rclone sync --create-empty-src-dirs --retries 5 --differ --verbose
+rclone sync --create-empty-src-dirs --retries 5 --verbose
 ```
 
 The cron command will be built to include all pairs of local and remote paths defined. For example, if you define `LOCAL_PATH_1` and `REMOTE_PATH_1`, the command will be constructed to run the sync between these two paths.
 
 ```
-rclone sync --create-empty-src-dirs --retries 5 --differ --verbose REMOTE_PATH_1 LOCAL_PATH_1
-rclone sync --create-empty-src-dirs --retries 5 --differ --verbose REMOTE_PATH_2 LOCAL_PATH_2
+rclone sync --create-empty-src-dirs --retries 5 --verbose LOCAL_PATH_1 REMOTE_PATH_1
+rclone sync --create-empty-src-dirs --retries 5 --verbose LOCAL_PATH_2 REMOTE_PATH_2
 ...
-rclone sync --create-empty-src-dirs --retries 5 --differ --verbose REMOTE_PATH_n LOCAL_PATH_n
+rclone sync --create-empty-src-dirs --retries 5 --verbose LOCAL_PATH_n REMOTE_PATH_n
 ```
 
 ## rClone Configuration
@@ -101,7 +102,7 @@ This project includes a default rClone WebDAV remote named **Internxt**, which i
 The default **Internxt** remote is configured with the following settings:
 - **Type**: WebDAV
 - **Vendor**: Other
-- **URL**: `http://localhost:<INTERNXT_WEB_PORT>/` or `https://localhost:<INTERNXT_WEB_PORT>/` (depending on the value of the `INTERNXT_HTTPS` environment variable)
+- **URL**: `http://0.0.0.0:<INTERNXT_WEB_PORT>/` or `https://0.0.0.0:<INTERNXT_WEB_PORT>/` (depending on the value of the `INTERNXT_HTTPS` environment variable)
 - **User**: Set to the value of the `INTERNXT_EMAIL` environment variable.
 - **Password**: Set to the value of the `INTERNXT_PASSWORD` environment variable.
 
