@@ -63,19 +63,26 @@ else
     exit 1
 fi
 
-# Configure rclone webgui
-echo "Configuring rclone webgui..."
-rclone rcd --rc-web-gui-no-open-browser \
-    --rc-web-gui-update \
-    --rc-no-auth \
-    --rc-user ${RCLONE_GUI_USER:-rclone_user} \
-    --rc-pass ${RCLONE_GUI_PASS:-rclone_password} \
-    --rc-addr :$RCLONE_WEB_GUI_PORT \
-    --log-file $LOG_DIR/rclone.log \
-    --log-format date,time,UTC \
-    ${RCLONE_CONFIG:+--config $RCLONE_CONFIG} \
-    ${RCLONE_SSL_CERT:+--rc-cert $RCLONE_SSL_CERT} \
-    ${RCLONE_SSL_KEY:+--rc-key $RCLONE_SSL_KEY} &
+# Configure rclone webgui only if RCLONE_WEB_GUI is true
+if [ "${RCLONE_WEB_GUI:-true}" = "true" ]; then
+    echo "Configuring rclone webgui..."
+    
+    rclone_command="rclone rcd --rc-web-gui \
+        --rc-web-gui-no-open-browser \
+        --rc-web-gui-update \
+        --rc-addr :$RCLONE_WEB_GUI_PORT \
+        --log-file $LOG_DIR/rclone.log \
+        --log-format date,time,UTC"
+
+    # Add --rc-user and --rc-pass only if both are set
+    if [ -n "$RCLONE_GUI_USER" ] && [ -n "$RCLONE_GUI_PASS" ]; then
+        rclone_command+=" --rc-user $RCLONE_GUI_USER --rc-pass $RCLONE_GUI_PASS"
+    else
+        rclone_command+=" --rc-no-auth"
+    fi
+
+    eval "$rclone_command &"
+fi
 
 # Handle TOTP for two-factor authentication
 if [ -n "$INTERNXT_TOTP" ]; then
