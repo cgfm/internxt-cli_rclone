@@ -56,8 +56,7 @@ if rclone config create Internxt webdav \
     url=${PROTOCOL}://0.0.0.0:$INTERNXT_WEB_PORT/ \
     vendor=other \
     user=$INTERNXT_EMAIL \
-    pass=$INTERNXT_PASSWORD \
-    --non-interactive >/dev/null 2>&1; then
+    pass=$INTERNXT_PASSWORD >/dev/null 2>&1; then
     echo "Successfully configured rclone internxt webdav remote."
 else
     echo "Failed to configure rclone internxt webdav remote."
