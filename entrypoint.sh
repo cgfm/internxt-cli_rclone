@@ -64,7 +64,7 @@ else
 fi
 
 # Configure rclone webgui only if RCLONE_WEB_GUI is true
-if [ "${RCLONE_WEB_GUI:-true}" = "true" ]; then
+if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
     echo "Configuring rclone webgui..."
     
     rclone_command="rclone rcd --rc-web-gui \
@@ -75,8 +75,8 @@ if [ "${RCLONE_WEB_GUI:-true}" = "true" ]; then
         --log-format date,time,UTC"
 
     # Add --rc-user and --rc-pass only if both are set
-    if [ -n "$RCLONE_GUI_USER" ] && [ -n "$RCLONE_GUI_PASS" ]; then
-        rclone_command+=" --rc-user $RCLONE_GUI_USER --rc-pass $RCLONE_GUI_PASS"
+    if [ -n "$RCLONE_WEB_GUI_USER" ] && [ -n "$RCLONE_WEB_GUI_PASS" ]; then
+        rclone_command+=" --rc-user $RCLONE_WEB_GUI_USER --rc-pass $RCLONE_WEB_GUI_PASS"
     else
         rclone_command+=" --rc-no-auth"
     fi
