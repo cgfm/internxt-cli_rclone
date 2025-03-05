@@ -17,6 +17,11 @@ fi
 LOG_DIR="/config/log"
 mkdir -p "$LOG_DIR"
 
+# Set RCLONE_CONFIG if not set
+if [ -z "$RCLONE_CONFIG" ]; then
+    RCLONE_CONFIG = "/config/rclone.conf"
+fi
+
 # Determine the protocol based on the INTERNXT_HTTPS variable
 if [ "$INTERNXT_HTTPS" = "true" ]; then
     PROTOCOL="https"
@@ -57,8 +62,14 @@ if rclone config create Internxt webdav \
     url "${PROTOCOL}://0.0.0.0:$INTERNXT_WEB_PORT/" \
     vendor "other" \
     user "$INTERNXT_EMAIL" \
-    pass "$INTERNXT_PASSWORD" >/dev/null 2>&1; then
+    pass "$INTERNXT_PASSWORD" \
+    --config "${RCLONE_CONFIG}" >/dev/null 2>&1; then
     echo "Successfully configured rclone internxt webdav remote."
+    
+    if [ "$DEBUG" = "true" ]; then
+        echo "Rclone config:"
+        cat $RCLONE_CONFIG
+    fi
 else
     echo "Failed to configure rclone internxt webdav remote."
     exit 1
@@ -82,14 +93,18 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
         rclone_command+=" --rc-no-auth"
     fi
 
-    rclone_command+="--rc-web-gui \
+    rclone_command+=" --rc-web-gui \
         --rc-web-gui-no-open-browser \
         --rc-web-gui-update \
         --rc-addr :$RCLONE_WEB_GUI_PORT \
+        --config $RCLONE_CONFIG \
         --log-file $LOG_DIR/rclone.log \
         --log-format date,time,UTC \
         $RCLONE_WEB_GUI_EXTRA_PARAMS"
-
+    if [ "$DEBUG" = "true" ]; then
+        echo "Starting rclone with command:"
+        echo $rclone_command
+    fi
     eval "$rclone_command &"
 fi
 
@@ -161,18 +176,15 @@ for i in {1..20}; do
 done
 
 if [ -n "$CRON_SCHEDULE" ]; then
+    # Initialize crontab if it doesn't exist
+    touch /var/spool/cron/root
+    echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $full_cron_command" >> /var/spool/cron/root
+    /usr/bin/crontab /var/spool/cron/root
     if [ "$DEBUG" = "true" ]; then
-        echo "DEBUG mode is enabled. The cron job will not be started."
-        echo "Full cron command: $full_cron_command"
-    else
-        # Initialize crontab if it doesn't exist
-        touch /var/spool/cron/root
-        echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $full_cron_command" >> /var/spool/cron/root
-        /usr/bin/crontab /var/spool/cron/root
         echo -e "Complete cron command:\n$full_cron_command"
-        service cron start
-        echo "Cron service started."
     fi
+    service cron start
+    echo "Cron service started."
 fi
 
 # Start log monitoring for rclone and Internxt
