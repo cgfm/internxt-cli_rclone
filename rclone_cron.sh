@@ -14,7 +14,7 @@ fi
 
 # Prepare the CRON_COMMAND
 if [ -z "$CRON_COMMAND" ]; then
-    CRON_COMMAND="rclone sync --create-empty-src-dirs --retries 5 --verbose --config ${RCLONE_CONFIG}"
+    CRON_COMMAND="rclone sync --create-empty-src-dirs --retries 5 --verbose --config $RCLONE_CONFIG"
 fi
 
 # Loop to append remote and local paths to the CRON_COMMAND
