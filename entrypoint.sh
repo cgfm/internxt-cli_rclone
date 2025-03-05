@@ -158,11 +158,10 @@ if [ -n "$CRON_SCHEDULE" ]; then
         echo "Full cron command: $full_cron_command"
     else
         # Initialize crontab if it doesn't exist
-        if ! crontab -l > /dev/null 2>&1; then
-            echo "" | crontab -  # Create an empty crontab
-        fi
-        
-        echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $full_cron_command" >> /etc/crontab
+        touch /var/spool/cron/root
+        /usr/bin/crontab /var/spool/cron/root
+
+        echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $full_cron_command" >> /var/spool/cron/root
         echo -e "Complete cron command:\n$full_cron_command"
         service cron start
         echo "Cron service started."
