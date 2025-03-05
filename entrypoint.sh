@@ -44,6 +44,7 @@ rotate_logs() {
                 mv "$LOG_DIR/rclone.log.$i" "$LOG_DIR/rclone.log.$((i+1))" 2>/dev/null || true
             fi
         done
+        touch $LOG_DIR/rclone.log
     fi
 }
 
@@ -146,8 +147,7 @@ for i in {1..20}; do
         if [ -z "$full_cron_command" ]; then
             full_cron_command="${CRON_COMMAND} ${!local_var} ${!remote_var} --log-file $LOG_DIR/rclone.log --log-format date,time,UTC"
         else
-            full_cron_command="${full_cron_command} && \\
-${CRON_COMMAND} ${!local_var} ${!remote_var} --log-file $LOG_DIR/rclone.log --log-format date,time,UTC"
+            full_cron_command="${full_cron_command} && ${CRON_COMMAND} ${!local_var} ${!remote_var} --log-file $LOG_DIR/rclone.log --log-format date,time,UTC"
         fi
     fi
 done
