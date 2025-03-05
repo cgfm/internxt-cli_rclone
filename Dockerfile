@@ -43,9 +43,10 @@ RUN ln -sf $INTERNXT_SSL_CERT /root/.internxt-cli/certs/cert.crt && \
 # Copy the internxt_script.sh and health_check.sh into the container
 COPY health_check.sh /usr/local/bin/health_check.sh
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY rclone_cron.sh /usr/local/bin/rclone_cron.sh
 
 # Make the scripts executable
-RUN chmod +x /usr/local/bin/health_check.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/health_check.sh /usr/local/bin/entrypoint.sh /usr/local/bin/rclone_cron.sh
 
 # Set the entry point to run the script
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
