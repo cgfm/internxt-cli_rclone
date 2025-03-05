@@ -23,6 +23,7 @@ for i in {1..20}; do
     local_var="LOCAL_PATH_$i"
     
     if [ ! -z "${!remote_var}" ] && [ ! -z "${!local_var}" ]; then
+        echo "${CRON_COMMAND} ${!local_var} ${!remote_var} --log-file $LOG_DIR/rclone.log --log-format date,time,UTC"
         eval "${CRON_COMMAND} ${!local_var} ${!remote_var} --log-file $LOG_DIR/rclone.log --log-format date,time,UTC"
     fi
 done
