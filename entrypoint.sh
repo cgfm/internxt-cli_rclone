@@ -151,38 +151,11 @@ else
     echo "Cron schedule is set to: $CRON_SCHEDULE"
 fi
 
-# Prepare the CRON_COMMAND
-if [ -n "$CRON_COMMAND" ]; then
-    echo "Using provided CRON_COMMAND: $CRON_COMMAND"
-else
-    CRON_COMMAND="rclone sync --create-empty-src-dirs --retries 5 --verbose"
-    echo "Using default command $CRON_COMMAND"
-fi
-
-full_cron_command=""
-
-# Loop to append remote and local paths to the CRON_COMMAND
-for i in {1..20}; do
-    remote_var="REMOTE_PATH_$i"
-    local_var="LOCAL_PATH_$i"
-
-    if [ ! -z "${!remote_var}" ] && [ ! -z "${!local_var}" ]; then
-        if [ -z "$full_cron_command" ]; then
-            full_cron_command="${CRON_COMMAND} ${!local_var} ${!remote_var} --log-file $LOG_DIR/rclone.log --log-format date,time,UTC"
-        else
-            full_cron_command="${full_cron_command} && ${CRON_COMMAND} ${!local_var} ${!remote_var} --log-file $LOG_DIR/rclone.log --log-format date,time,UTC"
-        fi
-    fi
-done
-
 if [ -n "$CRON_SCHEDULE" ]; then
     # Initialize crontab if it doesn't exist
     touch /var/spool/cron/root
-    echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock $full_cron_command" >> /var/spool/cron/root
+    echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock /usr/local/bin/rclone_cron.sh" >> /var/spool/cron/root
     /usr/bin/crontab /var/spool/cron/root
-    if [ "$DEBUG" = "true" ]; then
-        echo -e "Complete cron command:\n$full_cron_command"
-    fi
     service cron start
     echo "Cron service started."
 fi
