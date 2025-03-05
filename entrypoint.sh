@@ -68,12 +68,12 @@ fi
 if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
     echo "Configuring rclone webgui..."
     
-    rclone_command="rclone rcd --rc-web-gui \
-        --rc-web-gui-no-open-browser \
-        --rc-web-gui-update \
-        --rc-addr :$RCLONE_WEB_GUI_PORT \
-        --log-file $LOG_DIR/rclone.log \
-        --log-format date,time,UTC"
+    rclone_command="rclone rcd"
+
+    # Add --rc-user and --rc-pass only if both are set
+    if [ -n "$RCLONE_WEB_GUI_SSL_CERT" ] && [ -n "$RCLONE_WEB_GUI_SSL_KEY" ]; then
+        rclone_command+=" --rc-cert $RCLONE_WEB_GUI_SSL_CERT --rc-key $RCLONE_WEB_GUI_SSL_KEY"
+    fi
 
     # Add --rc-user and --rc-pass only if both are set
     if [ -n "$RCLONE_WEB_GUI_USER" ] && [ -n "$RCLONE_WEB_GUI_PASS" ]; then
@@ -81,6 +81,14 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
     else
         rclone_command+=" --rc-no-auth"
     fi
+
+    rclone_command+="--rc-web-gui \
+        --rc-web-gui-no-open-browser \
+        --rc-web-gui-update \
+        --rc-addr :$RCLONE_WEB_GUI_PORT \
+        --log-file $LOG_DIR/rclone.log \
+        --log-format date,time,UTC \
+        $RCLONE_WEB_GUI_EXTRA_PARAMS"
 
     eval "$rclone_command &"
 fi

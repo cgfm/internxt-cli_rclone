@@ -6,27 +6,28 @@ This repository contains a Docker setup to run the Internxt CLI with rclone supp
 
 The following environment variables can be set when running the Docker container. You can define up to 20 pairs of remote and local paths. Note that for each local path, a corresponding remote path is necessary.
 
-| Environment Variable                   | Description                                                                                  |
-|----------------------------------------|----------------------------------------------------------------------------------------------|
-| `INTERNXT_EMAIL`                       | Email address for Internxt login.                                                           |
-| `INTERNXT_HTTPS`                       | Set to `true` to enable HTTPS for WebDAV. Default is `false`.                              |
-| `INTERNXT_PASSWORD`                    | Password for Internxt login.                                                                 |
-| `INTERNXT_SSL_CERT`                   | Path to the SSL certificate for HTTPS (if enabled).                                         |
-| `INTERNXT_SSL_KEY`                    | Path to the SSL key for HTTPS (if enabled).                                               |
-| `INTERNXT_TOTP`                        | TOTP secret for two-factor authentication (optional).                                       |
-| `INTERNXT_WEB_PORT`                    | Port for Internxt WebDAV service. Default is `3005`.                                        |
-| `RCLONE_CONFIG`                        | Path to the rclone configuration file. Default is `/config/rclone.conf`.                    |
-| `RCLONE_SSL_CERT`                      | Path to the SSL certificate for HTTPS (if enabled).                                        |
-| `RCLONE_SSL_KEY`                       | Path to the SSL key for HTTPS (if enabled).                                               |
-| `RCLONE_WEB_GUI_PORT`                  | Port for rclone Web GUI. Default is `5572`.                                                |
-| `RCLONE_WEB_GUI_SERVE`                      | Optional. Set to false to disable the rClone Web GUI.                            |
-| `RCLONE_WEB_GUI_PASS`                      | Password for the rclone Web GUI (optional). If not pass and user are set it won't be used.                              |
-| `RCLONE_WEB_GUI_USER`                      | Username for the rclone Web GUI (optional). If not pass and user are set it won't be used.                                  |
-| `CRON_COMMAND`                         | Command to be executed by cron. Default is `rclone sync --create-empty-src-dirs --retries 5 --differ --verbose`. The command will be run with each pair of local and remote paths. |
-| `CRON_SCHEDULE`                        | Cron schedule for running the specified command. Default is an empty string.                |
+| Environment Variable                  | Description                                                                                                   |
+|---------------------------------------|---------------------------------------------------------------------------------------------------------------|
+| `INTERNXT_EMAIL`                      | Email address for Internxt login.                                                                             |
+| `INTERNXT_HTTPS`                      | Set to `true` to enable HTTPS for WebDAV. Default is `false`.                                                 |
+| `INTERNXT_PASSWORD`                   | Password for Internxt login.                                                                                  |
+| `INTERNXT_SSL_CERT`                   | Path to the SSL certificate for HTTPS (if enabled).                                                           |
+| `INTERNXT_SSL_KEY`                    | Path to the SSL key for HTTPS (if enabled).                                                                   |
+| `INTERNXT_TOTP`                       | TOTP secret for two-factor authentication (optional).                                                         |
+| `INTERNXT_WEB_PORT`                   | Port for Internxt WebDAV service. Default is `3005`.                                                          |
+| `RCLONE_CONFIG`                       | Path to the rclone configuration file. Default is `/config/rclone.conf`.                                      |
+| `RCLONE_WEB_GUI_SERVE`                | Set to false to disable the rClone Web GUI. Default is `true`.                                                |
+| `RCLONE_WEB_GUI_PORT`                 | Port for rclone Web GUI. Default is `5572`.                                                                   |
+| `RCLONE_WEB_GUI_USER`                 | Username for the rclone Web GUI (optional). If not user and pass are set it won't be used.                    |
+| `RCLONE_WEB_GUI_PASS`                 | Password for the rclone Web GUI (optional). If not user and pass are set it won't be used.                    |
+| `RCLONE_WEB_GUI_SSL_CERT`             | Path to the SSL certificate for HTTPS (if enabled).                                                           |
+| `RCLONE_WEB_GUI_SSL_KEY`              | Path to the SSL key for HTTPS (if enabled).                                                                   |
+| `RCLONE_WEB_GUI_EXTRA_PARAMS`         | Additional parameters for rclone Web GUI (optional). Default is an empty string.                              |
+| `CRON_COMMAND`                        | Command to be executed by cron (optional). Default is `rclone sync --create-empty-src-dirs --retries 5 --verbose`. The command will be run with each pair of local and remote paths. |
+| `CRON_SCHEDULE`                       | Cron schedule for running the specified command. Default is */15 * * * *. If an empty String is set no cron job  will be executed.                                   |
 | `LOCAL_PATH_1` to `LOCAL_PATH_20`     | Up to 20 local paths where files will be synchronized. Each local path must have a corresponding remote path. |
-| `REMOTE_PATH_1` to `REMOTE_PATH_20`   | Up to 20 remote paths for synchronization with the Internxt service.                       |
-| `TZ`                                   | Timezone for the application. Default is `Etc/UTC`.                                        |
+| `REMOTE_PATH_1` to `REMOTE_PATH_20`   | Up to 20 remote paths for synchronization with the Internxt service.                                          |
+| `TZ`                                  | Timezone for the application. Default is `Etc/UTC`.                                                           |
 
 ## Docker Image
 
@@ -47,6 +48,7 @@ docker run -e INTERNXT_EMAIL="your_email@example.com" \
            -e TZ="America/New_York" \
            -p 3005:3005 \
            -p 5572:5572 \
+           -p 53682:53682 \
            --rm cgfm/internxt-cli_rclone
 ```
 
@@ -67,10 +69,14 @@ services:
       CRON_SCHEDULE: '*/15 * * * *'
       REMOTE_PATH_1: remote:path1
       LOCAL_PATH_1: /local/path1
-      TZ: "America/New_York"
+      TZ: "Europe/Berlin"
     ports:
+      # Internxt WebDAV 
       - "3005:3005"
+      # rClone webgui 
       - "5572:5572"
+      # rClone ssh
+      - "53682:53682"
     volumes:
       - /local/config/dir:/config
     restart: unless-stopped
