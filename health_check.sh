@@ -33,6 +33,7 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
         if ! curl --connect-timeout 5 -s --head "$WEB_GUI_URL" | grep -q "200 OK"; then
             error_exit "rclone Web GUI is not accessible."
         fi
+    fi
 fi
 
 # Check if cron jobs are enabled and running only if CRON_SCHEDULE is not empty
