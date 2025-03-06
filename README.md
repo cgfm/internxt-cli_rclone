@@ -36,7 +36,7 @@ The following environment variables can be set when running the Docker container
 | `LOCAL_PATH_1` to `LOCAL_PATH_20`                       | Up to 20 local paths where files will be synchronized. Each local path must have a corresponding remote path.                                      |
 | `REMOTE_PATH_1` to `REMOTE_PATH_20`                     | Up to 20 remote paths for synchronization with the Internxt service.                                                                               |
 | `CUSTOM_CRON_COMMAND_1` to `CUSTOM_CRON_COMMAND_20`     | Up to 20 custom commands can be set. Details are explained at [Building and Executing Cron Commands](#custom-cron-command).                        |
-| `ROOT_CA`                                               | If the path to a root ca is set it will be appended to the ca-certificates.crt file to avoud "Unknown CA" errors (optional).                       |
+| `ROOT_CA`                                               | If the path to a root ca is set it will be appended to the ca-certificates.crt file to avoid "Unknown CA" errors (optional).                       |
 | `TZ`                                                    | Timezone for the application. Default is `Etc/UTC`.                                                                                                |
 | `DEBUG`                                                 | If set to `true`, the container will run in debug mode. Default is `false`.                                                                        |
 | `STOPATSTART`                                           | If set to `true`, the container will stop after the initial synchronization. Default is `false`.                                                   |
