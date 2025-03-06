@@ -20,7 +20,7 @@ The following environment variables can be set when running the Docker container
 | `INTERNXT_SSL_CERT`                   | Path to the SSL certificate for HTTPS (if enabled).                                                            |
 | `INTERNXT_SSL_KEY`                    | Path to the SSL key for HTTPS (if enabled).                                                                    |
 | `INTERNXT_TOTP`                       | TOTP secret for two-factor authentication (optional).                                                          |
-| `INTERNXT_HOST`               | The host of the Internxt WebDAV to connect to (optional) Default is 0.0.0.0                             |
+| `INTERNXT_HOST`                       | The host of the Internxt WebDAV to connect to (optional). Default is 0.0.0.0                                   |
 | `INTERNXT_WEB_PORT`                   | Port for Internxt WebDAV service. Default is `3005`.                                                           |
 | `RCLONE_CONFIG`                       | Path to the rclone configuration file. Default is `/config/rclone.conf`.                                       |
 | `RCLONE_WEB_GUI_SERVE`                | Set to false to disable the rClone Web GUI. Default is `true`.                                                 |
@@ -30,10 +30,12 @@ The following environment variables can be set when running the Docker container
 | `RCLONE_WEB_GUI_SSL_CERT`             | Path to the SSL certificate for HTTPS (if enabled).                                                            |
 | `RCLONE_WEB_GUI_SSL_KEY`              | Path to the SSL key for HTTPS (if enabled).                                                                    |
 | `RCLONE_WEB_GUI_EXTRA_PARAMS`         | Additional parameters for rclone Web GUI (optional). Default is an empty string.                               |
-| `CRON_COMMAND`                        | Command to be executed by cron (optional). Default is `rclone sync --create-empty-src-dirs --retries 5 --verbose`. The command will be run with each pair of local and remote paths. |
+| `CRON_COMMAND`                        | Command to be executed by cron (optional). Default is `rclone copy`. The command will be run with each pair of local and remote paths.<br>If remote files should be deleted if the don't exists locally anymore set this to `rclone sync`. **WARNING:** This will delete files on the remote if they are not present locally. **This could cause data loss!**  |
+| `CRON_COMMAND_FLAGS`                  | The Flags appended to the command above  (optional). Default is ` --create-empty-src-dirs --retries 5 --verbose`. The command will be run with each pair of local and remote paths. |
 | `CRON_SCHEDULE`                       | Cron schedule for running the specified command. Default is */15 * * * *. If an empty String is set no cron job  will be executed.                                   |
 | `LOCAL_PATH_1` to `LOCAL_PATH_20`     | Up to 20 local paths where files will be synchronized. Each local path must have a corresponding remote path.  |
 | `REMOTE_PATH_1` to `REMOTE_PATH_20`   | Up to 20 remote paths for synchronization with the Internxt service.                                           |
+| `ROOT_CA`                             | If the path to a root ca is set it will be appended to the ca-certificates.crt file to avoud "Unknown CA" errors (optional).                                         |
 | `TZ`                                  | Timezone for the application. Default is `Etc/UTC`.                                                            |
 | `DEBUG`                               | If set to `true`, the container will run in debug mode. Default is `false`.                                    |
 | `STOPATSTART`                         | If set to `true`, the container will stop after the initial synchronization. Default is `false`.               |
@@ -96,16 +98,22 @@ services:
 The `CRON_COMMAND` environment variable allows you to specify a custom command that will be executed by cron based on the defined schedule. If no command is provided, the default command used is:
 
 ```
-rclone sync --create-empty-src-dirs --retries 5 --verbose
+rclone copy
+```
+
+The `CRON_COMMAND_FLAGS` environment variable allows you to specify additional flags for the command. If no flags are provided, the default flags used are:
+
+```
+ --create-empty-src-dirs --retries 5 --verbose
 ```
 
 The cron command will be built to include all pairs of local and remote paths defined. For example, if you define `LOCAL_PATH_1` and `REMOTE_PATH_1`, the command will be constructed to run the sync between these two paths.
 
 ```
-rclone sync --create-empty-src-dirs --retries 5 --verbose LOCAL_PATH_1 REMOTE_PATH_1
-rclone sync --create-empty-src-dirs --retries 5 --verbose LOCAL_PATH_2 REMOTE_PATH_2
+rclone copy LOCAL_PATH_1 REMOTE_PATH_1 --create-empty-src-dirs --retries 5 --verbose
+rclone copy LOCAL_PATH_2 REMOTE_PATH_2 --create-empty-src-dirs --retries 5 --verbose
 ...
-rclone sync --create-empty-src-dirs --retries 5 --verbose LOCAL_PATH_n REMOTE_PATH_n
+rclone copy LOCAL_PATH_n<=20 REMOTE_PATH_n<=20 --create-empty-src-dirs --retries 5 --verbose 
 ```
 
 ## rClone Configuration
