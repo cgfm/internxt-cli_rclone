@@ -20,7 +20,7 @@ The following environment variables can be set when running the Docker container
 | `INTERNXT_SSL_CERT`                   | Path to the SSL certificate for HTTPS (if enabled).                                                            |
 | `INTERNXT_SSL_KEY`                    | Path to the SSL key for HTTPS (if enabled).                                                                    |
 | `INTERNXT_TOTP`                       | TOTP secret for two-factor authentication (optional).                                                          |
-| `INTERNXTINTERNXT_HOST`               | The host of the Internxt WebDAV to connect to (optional) Default is 0.0.0.0                             |
+| `INTERNXT_HOST`               | The host of the Internxt WebDAV to connect to (optional) Default is 0.0.0.0                             |
 | `INTERNXT_WEB_PORT`                   | Port for Internxt WebDAV service. Default is `3005`.                                                           |
 | `RCLONE_CONFIG`                       | Path to the rclone configuration file. Default is `/config/rclone.conf`.                                       |
 | `RCLONE_WEB_GUI_SERVE`                | Set to false to disable the rClone Web GUI. Default is `true`.                                                 |
@@ -117,7 +117,7 @@ This project includes a default rClone WebDAV remote named **Internxt**, which i
 The default **Internxt** remote is configured with the following settings:
 - **Type**: WebDAV
 - **Vendor**: Other
-- **URL**: `http://0.0.0.0:<INTERNXT_WEB_PORT>/` or `https://0.0.0.0:<INTERNXT_WEB_PORT>/` (depending on the value of the `INTERNXT_HTTPS` environment variable)
+- **URL**: `http://<INTERNXT_HOST>:<INTERNXT_WEB_PORT>/` or `https://<INTERNXT_HOST>:<INTERNXT_WEB_PORT>/` (depending on the value of the `INTERNXT_HTTPS` environment variable)
 - **User**: Set to the value of the `INTERNXT_EMAIL` environment variable.
 - **Password**: Set to the value of the `INTERNXT_PASSWORD` environment variable.
 
@@ -138,7 +138,7 @@ To set up additional remotes in rClone, you can follow these steps:
 
 If you prefer a graphical user interface, you can configure new remotes using the rClone web GUI. Here’s how:
 
-1. Open your web browser and go to the rClone web GUI, typically at `http://localhost:<RCLONE_WEB_GUI_PORT>`.
+1. Open your web browser and go to the rClone web GUI, typically at `http://<Your server IP>:<RCLONE_WEB_GUI_PORT>`.
 
 2. Log in with your credentials if authentication is enabled.
 
