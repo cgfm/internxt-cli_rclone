@@ -23,8 +23,8 @@ RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y curl gnupg2 tzdata jq cron && \
     curl -fsSL https://deb.nodesource.com/setup_23.x | bash - && \
-    sudo apt-get install -y nodejs && \
-    sudo -v ; curl https://rclone.org/install.sh | sudo bash -s beta && \
+    apt-get install -y nodejs && \
+    curl https://rclone.org/install.sh | bash -s beta && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
