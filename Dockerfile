@@ -21,11 +21,11 @@ ENV RCLONE_WEB_GUI_PORT=5572
 # Install required packages including Node.js and npm
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y curl gnupg2 tzdata jq cron && \
-    curl -fsSL https://deb.nodesource.com/setup_23.x | bash - && \
-    apt-get install -y nodejs && \
-    curl https://rclone.org/install.sh | bash -s beta && \
-    apt-get clean && \
+    apt-get install -y curl gnupg2 tzdata jq cron 
+RUN curl -fsSL https://deb.nodesource.com/setup_23.x | bash - && \
+    apt-get install -y nodejs 
+RUN curl https://rclone.org/install.sh | bash -s beta 
+RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Install the Internxt CLI
