@@ -13,9 +13,9 @@ The rClone web gui isn't reachable and if `RCLONE_WEB_GUI_SERVE` is true the hea
 The following environment variables can be set when running the Docker container. You can define up to 20 pairs of remote and local paths. Note that for each local path, a corresponding remote path is necessary.
 
 | Environment Variable                  | Description                                                                                                    |
-|---------------------------------------|----------------------------------------------------------------------------------------------------------------|
-| `INTERNXT_EMAIL`                      | Email address for Internxt login.                                                                              |
-| `INTERNXT_PASSWORD`                   | Password for Internxt login.                                                                                   |
+|---------------------------------------|-------------------------------------------------------------------- -------------------------------------------|
+| `INTERNXT_EMAIL`                      | Email address for Internxt login.  ![Static Badge](https://img.shields.io/badge/mandatory-red)                 | 
+| `INTERNXT_PASSWORD`                   | Password for Internxt login.  ![Static Badge](https://img.shields.io/badge/mandatory-red)                      |
 | `INTERNXT_HTTPS`                      | Set to `true` to enable HTTPS for WebDAV. Default is `false`.                                                  |
 | `INTERNXT_SSL_CERT`                   | Path to the SSL certificate for HTTPS (if enabled).                                                            |
 | `INTERNXT_SSL_KEY`                    | Path to the SSL key for HTTPS (if enabled).                                                                    |
@@ -35,6 +35,7 @@ The following environment variables can be set when running the Docker container
 | `CRON_SCHEDULE`                       | Cron schedule for running the specified command. Default is */15 * * * *. If an empty String is set no cron job  will be executed.                                   |
 | `LOCAL_PATH_1` to `LOCAL_PATH_20`     | Up to 20 local paths where files will be synchronized. Each local path must have a corresponding remote path.  |
 | `REMOTE_PATH_1` to `REMOTE_PATH_20`   | Up to 20 remote paths for synchronization with the Internxt service.                                           |
+| `CUSTOM_CRON_COMMAND_1` to `CUSTOM_CRON_COMMAND_20`     | Up to 20 custom commands can be set. Details are explained at [Building and Executing Cron Commands](#custom-cron-command).  |
 | `ROOT_CA`                             | If the path to a root ca is set it will be appended to the ca-certificates.crt file to avoud "Unknown CA" errors (optional).                                         |
 | `TZ`                                  | Timezone for the application. Default is `Etc/UTC`.                                                            |
 | `DEBUG`                               | If set to `true`, the container will run in debug mode. Default is `false`.                                    |
@@ -94,7 +95,7 @@ services:
 ```
 
 ## Building and Executing Cron Commands
-
+### Cron Command
 The `CRON_COMMAND` environment variable allows you to specify a custom command that will be executed by cron based on the defined schedule. If no command is provided, the default command used is:
 
 ```
@@ -114,6 +115,36 @@ rclone copy LOCAL_PATH_1 REMOTE_PATH_1 --create-empty-src-dirs --retries 5 --ver
 rclone copy LOCAL_PATH_2 REMOTE_PATH_2 --create-empty-src-dirs --retries 5 --verbose
 ...
 rclone copy LOCAL_PATH_n<=20 REMOTE_PATH_n<=20 --create-empty-src-dirs --retries 5 --verbose 
+```
+
+### Custom Cron Command
+The `CUSTOM_CRON_COMMAND_[1-20]` environment variables allow you to define custom cron commands. These commands will be executed in the order of the added number where numbers can be skiped. To run multiple commands before the sync commands just skip the definition of the local and remote Path.
+
+```yaml
+environment:
+  ...
+  REMOTE_PATH_1: remote:path1
+  LOCAL_PATH_1: /local/path1
+  REMOTE_PATH_2: remote:path2
+  LOCAL_PATH_2: /local/path2
+  CUSTOM_CRON_COMMAND_2: command 2
+  CUSTOM_CRON_COMMAND_3: command 3
+  CUSTOM_CRON_COMMAND_4: command 4
+  REMOTE_PATH_4: remote:path4
+  LOCAL_PATH_4: /local/path4
+  CUSTOM_CRON_COMMAND_5: command 5
+  ...
+```
+
+Will result in the following cron jobs:
+```
+rclone copy /local/path1 remote:path1 --create-empty-src-dirs --retries 5 --verbose
+command 2
+rclone copy /local/path2 remote:path2 --create-empty-src-dirs --retries 5 --verbose
+command 3
+command 4
+rclone copy /local/path4 remote:path4 --create-empty-src-dirs --retries 5 --verbose
+command 5
 ```
 
 ## rClone Configuration

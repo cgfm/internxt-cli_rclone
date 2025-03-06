@@ -26,7 +26,11 @@ fi
 for i in {1..20}; do
     remote_var="REMOTE_PATH_$i"
     local_var="LOCAL_PATH_$i"
-    
+    custom_cron_command="CUSTOM_CRON_COMMAND_$i"
+    if [ ! -z "${!custom_cron_command}" ]; then
+        echo "$(date -u +"%Y-%m-%d %H:%M:%S"): Cron running ${custom_cron_command}" >>  "$LOG_DIR/rclone.log"
+        eval "${custom_cron_command}"
+    fi
     if [ ! -z "${!remote_var}" ] && [ ! -z "${!local_var}" ]; then
         echo "$(date -u +"%Y-%m-%d %H:%M:%S"): Cron running ${CRON_COMMAND} ${!local_var} ${!remote_var} ${CRON_COMMAND_FLAGS} --log-file $LOG_DIR/rclone.log --log-format date,time,UTC" >>  "$LOG_DIR/rclone.log"
         eval "${CRON_COMMAND} ${!local_var} ${!remote_var} ${CRON_COMMAND_FLAGS} --log-file $LOG_DIR/rclone.log --log-format date,time,UTC"
