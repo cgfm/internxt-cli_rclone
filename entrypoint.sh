@@ -59,7 +59,7 @@ rotate_logs
 # Configure rclone to use the Internxt WebDAV server
 echo "Configuring rclone internxt webdav remote with $PROTOCOL..."
 if rclone config create Internxt webdav \
-    url "${PROTOCOL}://${INTERNXTINTERNXT_HOST_HOST:-0.0.0.0}:$INTERNXT_WEB_PORT/" \
+    url "${PROTOCOL}://${INTERNXT_HOST:-0.0.0.0}:$INTERNXT_WEB_PORT/" \
     vendor "other" \
     user "$INTERNXT_EMAIL" \
     pass "$INTERNXT_PASSWORD" \
