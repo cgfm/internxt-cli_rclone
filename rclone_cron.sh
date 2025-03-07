@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# rclone_cron.sh
-
 set -e
 
 # Log directory
