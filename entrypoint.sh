@@ -160,10 +160,51 @@ else
     echo "Cron schedule is set to: $CRON_SCHEDULE"
 fi
 
+# Create a working copy of the YAML configuration if RCLON_CRON_CONF is set
+WORKING_YAML="/working/rclone_cron.yaml"
+mkdir -p /working
+
+if [ -n "$RCLON_CRON_CONF" ]; then
+    # Remove existing copy if it exists
+    [ -f "$WORKING_YAML" ] && rm "$WORKING_YAML"
+
+    # Create a copy of the given YAML configuration
+    cp "$RCLON_CRON_CONF" "$WORKING_YAML"
+else
+    touch "$WORKING_YAML"
+fi
+
+# Add the environment variables to the YAML file
+for i in {1..20}; do
+    command_var="CRON_COMMAND_$i"
+    command = "${!command_var:-$CRON_COMMAND}"
+    command_flags_var="CRON_COMMAND_FLAGS_$i"
+    command_flags = "${!command_flags_var:-$COMMAND_FLAGS}"
+    local_path_var="LOCAL_PATH_$i"
+    local_path="${!local_path_var}"
+    remote_path_var="REMOTE_PATH_$i"
+    remote_path="${!remote_path_var}"
+    schedule_var="CRON_SCHEDULE_$i"
+    schedule="${!schedule_var:-$CRON_SCHEDULE}"
+    
+    if [ ! -z "${!local_path_var}" ] && [ ! -z "${!remote_path_var}" ]; then
+        yq e -i ".${schedule} += [{command: \"${command}\", command_flags: \"${command_flags}\", local_path: \"${local_path}\", remote_path: \"${remote_path}\"}]" "$WORKING_YAML"
+    else
+        yq e -i ".${schedule} += [{command: \"${command}\", command_flags: \"${command_flags}\"}]" "$WORKING_YAML"
+    fi
+done
+
+# Start cron jobs based on the schedules in the YAML file
 if [ -n "$CRON_SCHEDULE" ]; then
     # Initialize crontab if it doesn't exist
     touch /var/spool/cron/root
-    echo "$CRON_SCHEDULE root flock -n /tmp/cron.lock /usr/local/bin/rclone_cron.sh" >> /var/spool/cron/root
+    if [ -f "$WORKING_YAML" ]; then
+        # Iterate over each top-level key (cron schedule) in the YAML file
+        for schedule in $(yq e 'keys | .[]' "$WORKING_YAML"); do
+            # Register the cron job in crontab
+            echo "$schedule root flock -n /tmp/cron.lock /usr/local/bin/rclone_cron.sh \"$schedule\"" >> /var/spool/cron/root
+        done
+    fi
     /usr/bin/crontab /var/spool/cron/root
     service cron start
     echo "Cron service started."

@@ -22,17 +22,35 @@ if [ -z "$CRON_COMMAND" ]; then
     CRON_COMMAND="rclone copy"
 fi
 
-# Loop to append remote and local paths to the CRON_COMMAND
-for i in {1..20}; do
-    remote_var="REMOTE_PATH_$i"
-    local_var="LOCAL_PATH_$i"
-    custom_cron_command="CUSTOM_CRON_COMMAND_$i"
-    if [ ! -z "${!custom_cron_command}" ]; then
-        echo "$(date -u +"%Y-%m-%d %H:%M:%S"): Cron running ${custom_cron_command}" >>  "$LOG_DIR/rclone.log"
-        eval "${custom_cron_command}"
-    fi
-    if [ ! -z "${!remote_var}" ] && [ ! -z "${!local_var}" ]; then
-        echo "$(date -u +"%Y-%m-%d %H:%M:%S"): Cron running ${CRON_COMMAND} ${!local_var} ${!remote_var} ${CRON_COMMAND_FLAGS} --log-file $LOG_DIR/rclone.log --log-format date,time,UTC" >>  "$LOG_DIR/rclone.log"
-        eval "${CRON_COMMAND} ${!local_var} ${!remote_var} ${CRON_COMMAND_FLAGS} --log-file $LOG_DIR/rclone.log --log-format date,time,UTC"
-    fi
-done
+# Check if the schedule key is provided as an argument
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <cron_schedule_key>"
+    exit 1
+fi
+
+WORKING_YAML="/working/rclone_cron.yaml"
+schedule_key="$1"
+
+# Read the YAML file and execute commands for the specified schedule key
+if [ -f "$WORKING_YAML" ]; then
+    # Iterate over commands in the specified schedule
+    yq e ".${schedule_key}[]" "$WORKING_YAML" | while IFS= read -r line; do
+        # Extract command, command flags, local_path, and remote_path
+        command=$(echo "$line" | yq e '.command // empty' -)
+        command_flags=$(echo "$line" | yq e '.command_flags // empty' -)
+        local_path=$(echo "$line" | yq e '.local_path // empty' -)
+        remote_path=$(echo "$line" | yq e '.remote_path // empty' -)
+
+        # Execute the command if all parts are set
+        if [[ -n "$command" && -n "$local_path" && -n "$remote_path" ]]; then
+            echo "$(date -u +"%Y-%m-%d %H:%M:%S"): Running command: $command $local_path $remote_path $command_flags" >> "$LOG_DIR/rclone.log"
+            eval "$command $local_path $remote_path $command_flags --log-file=$LOG_DIR/rclone.log --log-format=date,time,UTC"
+        elif [[ -n "$command" ]]; then
+            echo "$(date -u +"%Y-%m-%d %H:%M:%S"): Running command: $command $command_flags" >> "$LOG_DIR/rclone.log"
+            eval "$command $command_flags"
+        fi
+    done
+else
+    echo "Error: Configuration file $WORKING_YAML not found."
+    exit 1
+fi
