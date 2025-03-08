@@ -13,13 +13,16 @@ if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
     exit 1
 fi
 
-# Check if the new certificate file exists
-if [[ -f "$ROOT_CA" ]]; then
-    # Append the new CA certificate to the ca-certificates.crt file
-    cat "$ROOT_CA" >> "/etc/ssl/certs/ca-certificates.crt"
-    echo "Successfully appended $ROOT_CA to /etc/ssl/certs/ca-certificates.crt"
-else
-    echo "Error: $ROOT_CA does not exist."
+# Check if a root ca was provided
+if [ -n "$ROOT_CA" ]; then
+    # Check if the new certificate file exists
+    if [[ -f "$ROOT_CA" ]]; then
+        # Append the new CA certificate to the ca-certificates.crt file
+        cat "$ROOT_CA" >> "/etc/ssl/certs/ca-certificates.crt"
+        echo "Successfully appended $ROOT_CA to /etc/ssl/certs/ca-certificates.crt"
+    else
+        echo "Error: $ROOT_CA does not exist."
+    fi
 fi
 
 # Create log directory if it doesn't exist
