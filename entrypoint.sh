@@ -173,8 +173,10 @@ if [ -n "$RCLON_CRON_CONF" ]; then
 
     # Create a copy of the given YAML configuration
     cp "$RCLON_CRON_CONF" "$WORKING_YAML"
+    echo "$WORKING_YAML copied from $RCLON_CRON_CONF"
 else
     touch "$WORKING_YAML"
+    echo "$WORKING_YAML created."
 fi
 
 # Check if cron_jobs exist in the YAML file
