@@ -178,7 +178,7 @@ else
 fi
 
 # Check if cron_jobs exist in the YAML file
-if ! yq e '.cron_jobs' "$WORKING_YAML" > /dev/null; then
+if ! yq e ".cron_jobs" "$WORKING_YAML" > /dev/null; then
     echo "Initializing cron_jobs in $WORKING_YAML."
     echo "cron_jobs: []" >> "$WORKING_YAML"
 fi
@@ -223,9 +223,9 @@ for i in {1..20}; do
     # Check if the schedule is not empty
     if [ -n "$schedule" ]; then
         # Check if the key exists, if not initialize it
-        if ! yq e '.cron_jobs[] | select(.schedule == "'$schedule'")' "$WORKING_YAML" >/dev/null; then
-            echo "Initializing schedule '$schedule' in $WORKING_YAML."
-            yq e -i '.cron_jobs += [{"schedule": "'$schedule'", "commands": []}]' "$WORKING_YAML"
+        if ! yq e ".cron_jobs[] | select(.schedule == \"$schedule\")" "$WORKING_YAML" >/dev/null; then
+            echo "Initializing schedule \"$schedule\" in $WORKING_YAML."
+            yq e -i ".cron_jobs += [{\"schedule\": \"$schedule\", \"commands\": []}]" "$WORKING_YAML"
         fi
         
         # Prepare the command entry
