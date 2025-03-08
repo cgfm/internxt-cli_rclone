@@ -225,9 +225,9 @@ for i in {1..20}; do
     # Check if the schedule is not empty
     if [ -n "$schedule" ]; then
         # Check if the key exists, if not initialize it
-        if ! yq e '.cron_jobs[] | select(.schedule == '$schedule')' "$WORKING_YAML" >/dev/null; then
+        if ! yq e '.cron_jobs[] | select(.schedule == "'$schedule'")' "$WORKING_YAML" >/dev/null; then
             echo "Initializing schedule \"$schedule\" in $WORKING_YAML."
-            yq e -i '.cron_jobs += [{"schedule": '$schedule', "commands": []}]' "$WORKING_YAML"
+            yq e -i '.cron_jobs += [{"schedule": "'$schedule'", "commands": []}]' "$WORKING_YAML"
         fi
         
         # Prepare the command entry
@@ -252,7 +252,7 @@ for i in {1..20}; do
         command_entry+="}"
 
         # Append the command entry to the appropriate schedule
-        yq e -i '.cron_jobs[] | select(.schedule == '$schedule') | .commands += ['"$command_entry"']' "$WORKING_YAML"
+        yq e -i '.cron_jobs[] | select(.schedule == "'$schedule'") | .commands += ['$command_entry']' "$WORKING_YAML"
     fi
 done
 
