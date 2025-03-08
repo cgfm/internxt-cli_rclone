@@ -199,6 +199,7 @@ for i in {1..20}; do
 
     schedule_var="CRON_SCHEDULE_$i"
     schedule="${!schedule_var:-$CRON_SCHEDULE}"
+    escaped_schedule=$(printf '%s\n' "$schedule" | sed 's/"/\\"/g')
 
     # Determine the command to use
     if [ -n "${!command_var}" ]; then
@@ -226,7 +227,7 @@ for i in {1..20}; do
         # Check if the key exists, if not initialize it
         if ! yq e '.cron_jobs[] | select(.schedule == "'$schedule'")' "$WORKING_YAML" >/dev/null; then
             echo "Initializing schedule '$schedule' in $WORKING_YAML."
-            yq e -i '.cron_jobs += [{"schedule": "'$schedule'", "commands": []}]' "$WORKING_YAML"
+            yq e -i '.cron_jobs += [{"schedule": "'$escaped_schedule'", "commands": []}]' "$WORKING_YAML"
         fi
         
         # Prepare the command entry
