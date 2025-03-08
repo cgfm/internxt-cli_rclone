@@ -177,23 +177,32 @@ else
     touch "$WORKING_YAML"
 fi
 
+# Function to create a valid schedule key
+create_schedule_key() {
+    local schedule="$1"
+    # Replace * with a, spaces with w, and / with s
+    echo "$schedule" | sed 's/\*/a/g; s/ /w/g; s/\//s/g'
+}
+
 # Add the environment variables to the YAML file
 for i in {1..20}; do
     command_var="CRON_COMMAND_$i"
-    command = "${!command_var:-$CRON_COMMAND}"
+    command="${!command_var:-$CRON_COMMAND}"
     command_flags_var="CRON_COMMAND_FLAGS_$i"
-    command_flags = "${!command_flags_var:-$COMMAND_FLAGS}"
+    command_flags="${!command_flags_var:-$COMMAND_FLAGS}"
     local_path_var="LOCAL_PATH_$i"
     local_path="${!local_path_var}"
     remote_path_var="REMOTE_PATH_$i"
     remote_path="${!remote_path_var}"
     schedule_var="CRON_SCHEDULE_$i"
     schedule="${!schedule_var:-$CRON_SCHEDULE}"
+
+    schedule_key=$(create_schedule_key "$schedule")
     
     if [ ! -z "${!local_path_var}" ] && [ ! -z "${!remote_path_var}" ]; then
-        yq e -i ".${schedule} += [{command: \"${command}\", command_flags: \"${command_flags}\", local_path: \"${local_path}\", remote_path: \"${remote_path}\"}]" "$WORKING_YAML"
+        yq e -i ".${schedule_key} += [{command: \"${command}\", command_flags: \"${command_flags}\", local_path: \"${local_path}\", remote_path: \"${remote_path}\", schedule: \"${schedule}\"}]" "$WORKING_YAML"
     else
-        yq e -i ".${schedule} += [{command: \"${command}\", command_flags: \"${command_flags}\"}]" "$WORKING_YAML"
+        yq e -i ".${schedule_key} += [{command: \"${command}\", command_flags: \"${command_flags}\", schedule: \"${schedule}\"}]" "$WORKING_YAML"
     fi
 done
 
