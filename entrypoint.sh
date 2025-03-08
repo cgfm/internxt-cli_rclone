@@ -184,25 +184,74 @@ create_schedule_key() {
     echo "$schedule" | sed 's/\*/a/g; s/ /w/g; s/\//s/g'
 }
 
-# Add the environment variables to the YAML file
+# Add the environment variables to the YAML file if they are set
 for i in {1..20}; do
     command_var="CRON_COMMAND_$i"
-    command="${!command_var:-$CRON_COMMAND}"
+
     command_flags_var="CRON_COMMAND_FLAGS_$i"
-    command_flags="${!command_flags_var:-$COMMAND_FLAGS}"
+    command_flags=""
+
     local_path_var="LOCAL_PATH_$i"
     local_path="${!local_path_var}"
+
     remote_path_var="REMOTE_PATH_$i"
     remote_path="${!remote_path_var}"
+
     schedule_var="CRON_SCHEDULE_$i"
     schedule="${!schedule_var:-$CRON_SCHEDULE}"
 
-    schedule_key=$(create_schedule_key "$schedule")
-    
-    if [ ! -z "${!local_path_var}" ] && [ ! -z "${!remote_path_var}" ]; then
-        yq e -i ".${schedule_key} += [{command: \"${command}\", command_flags: \"${command_flags}\", local_path: \"${local_path}\", remote_path: \"${remote_path}\", schedule: \"${schedule}\"}]" "$WORKING_YAML"
+    # Determine the command to use
+    if [ -n "${!command_var}" ]; then
+        # Use user-defined command if provided
+        command="${!command_var}"
+    elif [ -n "$local_path" ] && [ -n "$remote_path" ]; then
+        # Use default command only if both paths are set
+        command="$CRON_COMMAND"
     else
-        yq e -i ".${schedule_key} += [{command: \"${command}\", command_flags: \"${command_flags}\", schedule: \"${schedule}\"}]" "$WORKING_YAML"
+        # Skip entry if no valid command can be determined
+        continue
+    fi
+
+    # Determine the command flags to use
+    if [ -n "${!command_flags_var}" ]; then
+        # Use user-defined command flags if provided
+        command_flags="${!command_flags_var}"
+    elif [ -n "$local_path" ] && [ -n "$remote_path" ]; then
+        # Use default command flags only if both paths are set
+        command_flags="$CRON_COMMAND_FLAGS"
+    fi
+
+    # Check if the schedule is not empty
+    if [ -n "$schedule" ]; then
+        # Check if the key exists, if not initialize it
+        if ! yq e '.cron_jobs[] | select(.schedule == "'$schedule'")' "$WORKING_YAML" >/dev/null; then
+            echo "Initializing schedule '$schedule' in $WORKING_YAML."
+            yq e -i '.cron_jobs += [{"schedule": "'$schedule'", "commands": []}]' "$WORKING_YAML"
+        fi
+        
+        # Prepare the command entry
+        command_entry="{"
+        command_entry+="\"command\": \"$command\""
+
+        # Add command flags if they're not empty
+        if [ -n "$command_flags" ]; then
+            command_entry+=", \"command_flags\": \"$command_flags\""
+        fi
+
+        # Add local path if it's not empty
+        if [ -n "$local_path" ]; then
+            command_entry+=", \"local_path\": \"$local_path\""
+        fi
+
+        # Add remote path if it's not empty
+        if [ -n "$remote_path" ]; then
+            command_entry+=", \"remote_path\": \"$remote_path\""
+        fi
+
+        command_entry+="}"
+
+        # Append the command entry to the appropriate schedule
+        yq e -i '.cron_jobs[] | select(.schedule == "'$schedule'") | .commands += ['"$command_entry"']' "$WORKING_YAML"
     fi
 done
 
@@ -210,13 +259,21 @@ done
 if [ -n "$CRON_SCHEDULE" ]; then
     # Initialize crontab if it doesn't exist
     touch /var/spool/cron/root
+
     if [ -f "$WORKING_YAML" ]; then
-        # Iterate over each top-level key (cron schedule) in the YAML file
-        for schedule in $(yq e 'keys | .[]' "$WORKING_YAML"); do
+        # Get the number of cron jobs
+        total_jobs=$(yq e '.cron_jobs | length' "$WORKING_YAML")
+
+        # Iterate over each job in the cron_jobs array
+        for ((i=0; i<total_jobs; i++)); do
+            # Extract the schedule for the current job
+            schedule=$(yq e ".cron_jobs[$i].schedule" "$WORKING_YAML")
+
             # Register the cron job in crontab
-            echo "$schedule root flock -n /tmp/cron.lock /usr/local/bin/rclone_cron.sh \"$schedule\"" >> /var/spool/cron/root
+            echo "$schedule root flock -n /tmp/cron.lock /usr/local/bin/rclone_cron.sh \"$i\"" >> /var/spool/cron/root
         done
     fi
+
     /usr/bin/crontab /var/spool/cron/root
     service cron start
     echo "Cron service started."
