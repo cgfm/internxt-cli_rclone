@@ -177,9 +177,9 @@ fi
 # Add the environment variables to the YAML file
 for i in {1..20}; do
     command_var="CRON_COMMAND_$i"
-    command = "${!command_var:-$CRON_COMMAND}"
+    command="${!command_var:-$CRON_COMMAND}"
     command_flags_var="CRON_COMMAND_FLAGS_$i"
-    command_flags = "${!command_flags_var:-$COMMAND_FLAGS}"
+    command_flags="${!command_flags_var:-$COMMAND_FLAGS}"
     local_path_var="LOCAL_PATH_$i"
     local_path="${!local_path_var}"
     remote_path_var="REMOTE_PATH_$i"
