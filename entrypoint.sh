@@ -177,12 +177,11 @@ else
     touch "$WORKING_YAML"
 fi
 
-# Function to create a valid schedule key
-create_schedule_key() {
-    local schedule="$1"
-    # Replace * with a, spaces with w, and / with s
-    echo "$schedule" | sed 's/\*/a/g; s/ /w/g; s/\//s/g'
-}
+# Check if cron_jobs exist in the YAML file
+if ! yq e '.cron_jobs' "$WORKING_YAML" > /dev/null; then
+    echo "Initializing cron_jobs in $WORKING_YAML."
+    echo "cron_jobs: []" >> "$WORKING_YAML"
+fi
 
 # Add the environment variables to the YAML file if they are set
 for i in {1..20}; do
@@ -199,8 +198,7 @@ for i in {1..20}; do
 
     schedule_var="CRON_SCHEDULE_$i"
     schedule="${!schedule_var:-$CRON_SCHEDULE}"
-    escaped_schedule=$(printf '%s\n' "$schedule" | sed 's/"/\\"/g')
-
+    
     # Determine the command to use
     if [ -n "${!command_var}" ]; then
         # Use user-defined command if provided
@@ -227,7 +225,7 @@ for i in {1..20}; do
         # Check if the key exists, if not initialize it
         if ! yq e '.cron_jobs[] | select(.schedule == "'$schedule'")' "$WORKING_YAML" >/dev/null; then
             echo "Initializing schedule '$schedule' in $WORKING_YAML."
-            yq e -i '.cron_jobs += [{"schedule": "'$escaped_schedule'", "commands": []}]' "$WORKING_YAML"
+            yq e -i '.cron_jobs += [{"schedule": "'$schedule'", "commands": []}]' "$WORKING_YAML"
         fi
         
         # Prepare the command entry
