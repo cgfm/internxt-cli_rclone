@@ -13,6 +13,23 @@ if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
     exit 1
 fi
 
+# Link SSL certificate and key files if provided
+if [ -f "$INTERNXT_SSL_CERT" ]; then
+    if [ "$INTERNXT_SSL_CERT" != "/root/.internxt-cli/certs/cert.crt" ] && [ "$INTERNXT_SSL_CERT" != "/config/internxt/certs/cert.crt" ]; then
+        ln -sf "$INTERNXT_SSL_CERT" /root/.internxt-cli/certs/cert.crt
+    fi
+else
+    echo "Error: SSL certificate file $INTERNXT_SSL_CERT does not exist."
+fi
+
+if [ -f "$INTERNXT_SSL_KEY" ]; then
+    if [ "$INTERNXT_SSL_KEY" != "/root/.internxt-cli/certs/priv.key" ] && [ "$INTERNXT_SSL_KEY" != "/config/internxt/certs/priv.key" ]; then
+        ln -sf "$INTERNXT_SSL_KEY" /root/.internxt-cli/certs/priv.key
+    fi
+else
+    echo "Error: SSL key file $INTERNXT_SSL_KEY does not exist."
+fi
+
 # Check if a root ca was provided
 if [ -n "$ROOT_CA" ]; then
     # Check if the new certificate file exists
@@ -26,8 +43,7 @@ if [ -n "$ROOT_CA" ]; then
 fi
 
 # Create log directory if it doesn't exist
-LOG_DIR="/config/log"
-mkdir -p "$LOG_DIR"
+mkdir -p "/config/log/"
 
 # Set RCLONE_CONFIG if not set
 if [ -z "$RCLONE_CONFIG" ]; then
@@ -44,7 +60,7 @@ fi
 # Function to rotate rClone logs
 rotate_logs() {
     if [ "$RCLONE_KEEP_LOGFILES" != "true" ]; then
-        LOCAL_LOG_FILES=("$LOG_DIR/rclone.log")
+        LOCAL_LOG_FILES=("/config/log/rclone.log")
         if [ -n "$RCLONE_LOGFILE_COUNT" ]; then
             MAX_LOG_FILES="$RCLONE_LOGFILE_COUNT"
         else
@@ -55,13 +71,13 @@ rotate_logs() {
         for ((i=MAX_LOG_FILES; i>0; i--)); do
             if [ $i -eq $MAX_LOG_FILES ]; then
                 # Rename the current log to log.1
-                mv "$LOG_DIR/rclone.log" "$LOG_DIR/rclone.log.$i" 2>/dev/null || true
+                mv "/config/log/rclone.log" "/config/log/rclone.log.$i" 2>/dev/null || true
             else
                 # Rename older logs
-                mv "$LOG_DIR/rclone.log.$i" "$LOG_DIR/rclone.log.$((i+1))" 2>/dev/null || true
+                mv "/config/log/rclone.log.$i" "/config/log/rclone.log.$((i+1))" 2>/dev/null || true
             fi
         done
-        touch $LOG_DIR/rclone.log
+        touch /config/log/rclone.log
     fi
 }
 
@@ -110,7 +126,7 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
         --rc-web-gui-update \
         --rc-addr :$RCLONE_WEB_GUI_PORT \
         --config $RCLONE_CONFIG \
-        --log-file $LOG_DIR/rclone.log \
+        --log-file /config/log/rclone.log \
         --log-format date,time,UTC \
         $RCLONE_WEB_GUI_EXTRA_PARAMS"
     if [ "$DEBUG" = "true" ]; then
@@ -163,34 +179,32 @@ else
     echo "Cron schedule is set to: $CRON_SCHEDULE"
 fi
 
-# Create a working copy of the YAML configuration if RCLON_CRON_CONF is set
-WORKING_YAML="/working/rclone_cron.yaml"
+# Create a working copy of the JSON configuration if RCLON_CRON_CONF is set
+WORKING_JSON="/working/rclone_cron.json"
 mkdir -p /working
 
-if [ -n "$RCLON_CRON_CONF" ]; then
+if [ -n "$RCLON_CRON_CONF" ] && [ -f "$RCLON_CRON_CONF" ]; then
     # Remove existing copy if it exists
-    [ -f "$WORKING_YAML" ] && rm "$WORKING_YAML"
+    [ -f "$WORKING_JSON" ] && rm "$WORKING_JSON"
 
-    # Create a copy of the given YAML configuration
-    cp "$RCLON_CRON_CONF" "$WORKING_YAML"
-    echo "$WORKING_YAML copied from $RCLON_CRON_CONF"
+    # Create a copy of the given JSON configuration
+    cp "$RCLON_CRON_CONF" "$WORKING_JSON"
 else
-    touch "$WORKING_YAML"
-    echo "$WORKING_YAML created."
+    echo " Initialize with an empty JSON structure. No config file is provided"
+    echo "{\"cron_jobs\": []}" > "$WORKING_JSON"
 fi
 
-# Check if cron_jobs exist in the YAML file
-if ! yq -e '.cron_jobs' "$WORKING_YAML" > /dev/null; then
-    echo "Initializing cron_jobs in $WORKING_YAML."
-    echo "cron_jobs: []" >> "$WORKING_YAML"
+# Check if cron_jobs key exists and initialize it if not
+if ! jq -e '.cron_jobs' "$WORKING_JSON" > /dev/null; then
+    echo "Initializing cron_jobs in $WORKING_JSON."
+    jq '. + { cron_jobs: [] }' "$WORKING_JSON" > tmp.$$.json && mv tmp.$$.json "$WORKING_JSON"
 fi
 
-# Add the environment variables to the YAML file if they are set
+# Add the environment variables to the JSON file
 for i in {1..20}; do
-    command_var="CRON_COMMAND_$i"
+    cron_command_var="CRON_COMMAND_$i"
 
-    command_flags_var="CRON_COMMAND_FLAGS_$i"
-    command_flags=""
+    cron_command_flags_var="CRON_COMMAND_FLAGS_$i"
 
     local_path_var="LOCAL_PATH_$i"
     local_path="${!local_path_var}"
@@ -200,76 +214,66 @@ for i in {1..20}; do
 
     schedule_var="CRON_SCHEDULE_$i"
     schedule="${!schedule_var:-$CRON_SCHEDULE}"
-    
+
     # Determine the command to use
-    if [ -n "${!command_var}" ]; then
+    if [ -n "${!cron_command_var}" ]; then
         # Use user-defined command if provided
-        command="${!command_var}"
+        cron_command="${!cron_command_var}"
     elif [ -n "$local_path" ] && [ -n "$remote_path" ]; then
         # Use default command only if both paths are set
-        command="$CRON_COMMAND"
+        cron_command="$CRON_COMMAND"
     else
         # Skip entry if no valid command can be determined
         continue
     fi
-
+    
     # Determine the command flags to use
-    if [ -n "${!command_flags_var}" ]; then
+    if [ -n "${!cron_command_flags_var}" ]; then
         # Use user-defined command flags if provided
-        command_flags="${!command_flags_var}"
+        cron_command_flags="${!cron_command_flags_var}"
     elif [ -n "$local_path" ] && [ -n "$remote_path" ]; then
         # Use default command flags only if both paths are set
-        command_flags="$CRON_COMMAND_FLAGS"
+        cron_command_flags="$CRON_COMMAND_FLAGS"
     fi
-
+    
     # Check if the schedule is not empty
     if [ -n "$schedule" ]; then
-        # Check if the key exists, if not initialize it
-        if ! yq -e '.cron_jobs[] | select(.schedule == "'$schedule'")' "$WORKING_YAML" >/dev/null; then
-            echo "Initializing schedule \"$schedule\" in $WORKING_YAML."
-            yq -e -i '.cron_jobs += [{"schedule": "'$schedule'", "commands": []}]' "$WORKING_YAML"
-        fi
-        
         # Prepare the command entry
-        command_entry="{"
-        command_entry+="\"command\": \"$command\""
-
-        # Add command flags if they're not empty
-        if [ -n "$command_flags" ]; then
-            command_entry+=", \"command_flags\": \"$command_flags\""
+        command_entry=$(jq -n \
+            --arg cmd "$cron_command" \
+            --arg cmd_flags "$cron_command_flags" \
+            --arg loc_path "$local_path" \
+            --arg rem_path "$remote_path" \
+            '{command: $cmd, command_flags: $cmd_flags, local_path: $loc_path, remote_path: $rem_path}')
+    
+        # Check if the schedule exists, if not, add it
+        if ! jq -e ".cron_jobs[] | select(.schedule == \"$schedule\")" "$WORKING_JSON" > /dev/null; then
+            echo "Adding new schedule '$schedule' to $WORKING_JSON."
+            jq --arg schedule "$schedule" '.cron_jobs += [{"schedule": $schedule, "commands": []}]' "$WORKING_JSON" > tmp.$$.json && mv tmp.$$.json "$WORKING_JSON"
         fi
 
-        # Add local path if it's not empty
-        if [ -n "$local_path" ]; then
-            command_entry+=", \"local_path\": \"$local_path\""
-        fi
-
-        # Add remote path if it's not empty
-        if [ -n "$remote_path" ]; then
-            command_entry+=", \"remote_path\": \"$remote_path\""
-        fi
-
-        command_entry+="}"
-
-        # Append the command entry to the appropriate schedule
-        yq -e -i '.cron_jobs[] | select(.schedule == "'$schedule'") | .commands += ['$command_entry']' "$WORKING_YAML"
+        # Add the command entry to the appropriate schedule
+        jq --arg schedule "$schedule" \
+        --argjson command_entry "$command_entry" \
+        '(.cron_jobs[] | select(.schedule == $schedule) | .commands) += [$command_entry]' \
+        "$WORKING_JSON" > tmp.$$.json && mv tmp.$$.json "$WORKING_JSON"
+    else
+        echo "No Schedule provided for command '$command' No. $i."
     fi
 done
 
-# Start cron jobs based on the schedules in the YAML file
+# Start cron jobs based on the schedules in the JSON file
 if [ -n "$CRON_SCHEDULE" ]; then
     # Initialize crontab if it doesn't exist
     touch /var/spool/cron/root
 
-    if [ -f "$WORKING_YAML" ]; then
-        # Get the number of cron jobs
-        total_jobs=$(yq e '.cron_jobs | length' "$WORKING_YAML")
+    if [ -f "$WORKING_JSON" ]; then
+        # Iterate over each job in the JSON file
+        total_jobs=$(jq '.cron_jobs | length' "$WORKING_JSON")
 
-        # Iterate over each job in the cron_jobs array
         for ((i=0; i<total_jobs; i++)); do
             # Extract the schedule for the current job
-            schedule=$(yq e ".cron_jobs[$i].schedule" "$WORKING_YAML")
-
+            schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
             # Register the cron job in crontab
             echo "$schedule root flock -n /tmp/cron.lock /usr/local/bin/rclone_cron.sh \"$i\"" >> /var/spool/cron/root
         done
@@ -285,7 +289,7 @@ echo "--------------------------------------------------"
 echo "Starting log monitoring for rclone and Internxt..."
 echo "--------------------------------------------------"
 
-RCLONE_LOG="$LOG_DIR/rclone.log"
+RCLONE_LOG="/config/log/rclone.log"
 
 # Monitor all Internxt log files dynamically
 INTERNXT_LOG_FILES=$(find "/root/.internxt-cli/logs" -type f)

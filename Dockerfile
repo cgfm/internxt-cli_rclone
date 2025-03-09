@@ -20,12 +20,9 @@ ENV RCLONE_WEB_GUI_PORT=5572
 
 # Install required packages including Node.js and npm
 RUN apt-get update && \
-    apt-get install -y curl gnupg2 tzdata && \
-    curl -LO "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64" && \
-    chmod +x yq_linux_amd64 && \
-    mv yq_linux_amd64 /usr/bin/yq && \
+    apt-get install -y curl gnupg2 tzdata jq rclone cron && \
     curl -fsSL https://deb.nodesource.com/setup_23.x | bash - && \
-    apt-get install -y nodejs rclone cron && \
+    apt-get install -y nodejs && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -38,10 +35,6 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # Create directories for the rclone configuration and SSL certs
 RUN mkdir -p /config/log /root/.internxt-cli/certs
 RUN touch /config/log/rclone.log
-
-# Link SSL certificate and key files if provided
-RUN ln -sf $INTERNXT_SSL_CERT /root/.internxt-cli/certs/cert.crt && \
-    ln -sf $INTERNXT_SSL_KEY /root/.internxt-cli/certs/priv.key
 
 # Copy the internxt_script.sh and health_check.sh into the container
 COPY health_check.sh /usr/local/bin/health_check.sh
