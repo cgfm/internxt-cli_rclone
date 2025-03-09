@@ -31,7 +31,7 @@ RUN mkdir -p /config/log /config/internxt/certs /root/.internxt-cli
 RUN touch /config/log/rclone.log
 
 # Create a symlink to bind /root/.internxt-cli to /config/internxt
-RUN mount --bind /config/internxt /root/.internxt-cli
+RUN ln -s /config/internxt /root/.internxt-cli
 
 # Install the Internxt CLI
 RUN npm install -g @internxt/cli
