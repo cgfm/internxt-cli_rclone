@@ -27,7 +27,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Create directories for the rclone configuration and SSL certs
-RUN mkdir -p /config/log /config/internxt/certs /root/.internxt-cli
+RUN mkdir -p /config/log /config/internxt/certs
 RUN touch /config/log/rclone.log
 
 # Create a symlink to bind /root/.internxt-cli to /config/internxt
@@ -46,6 +46,14 @@ COPY rclone_cron.sh /usr/local/bin/rclone_cron.sh
 
 # Make the scripts executable
 RUN chmod +x /usr/local/bin/health_check.sh /usr/local/bin/entrypoint.sh /usr/local/bin/rclone_cron.sh
+
+# Expose necessary ports
+# Internxt WebDAV port
+EXPOSE 3005
+# rClone Web GUI
+EXPOSE 5572
+# rClone SSH
+EXPOSE 53682
 
 # Set the entry point to run the script
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
