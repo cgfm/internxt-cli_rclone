@@ -27,11 +27,11 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Create directories for the rclone configuration and SSL certs
-RUN mkdir -p /config/log /config/internxt/certs
+RUN mkdir -p /config/log /config/internxt/certs /root/.internxt-cli
 RUN touch /config/log/rclone.log
 
 # Create a symlink to bind /root/.internxt-cli to /config/internxt
-RUN ln -s /config/internxt /root/.internxt-cli
+RUN mount --bind /config/internxt /root/.internxt-cli
 
 # Install the Internxt CLI
 RUN npm install -g @internxt/cli
