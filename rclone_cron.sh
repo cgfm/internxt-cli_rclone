@@ -10,19 +10,25 @@ if [ -z "$RCLONE_CONFIG" ]; then
     RCLONE_CONFIG="/config/rclone.conf"
 fi
 
-# Check if the schedule key is provided as an argument
+# Check if the schedule index is provided as an argument
 if [ $# -ne 1 ]; then
-    echo "Usage: $0 <schedule_key>"
+    echo "Usage: $0 <schedule_index>"
     exit 1
 fi
 
 WORKING_JSON="/working/rclone_cron.json"
-schedule_key="$1"
+schedule_index="$1"
 
-# Read the JSON file and execute commands for the specified schedule key
+# Read the JSON file and execute commands for the specified schedule index
 if [ -f "$WORKING_JSON" ]; then
-    # Iterate over commands in the specified schedule
-    commands=$(jq -c ".cron_jobs[] | select(.schedule == \"$schedule_key\") | .commands[]" "$WORKING_JSON")
+    # Extract the commands for the specified schedule index
+    commands=$(jq -c ".cron_jobs[$schedule_index].commands[]" "$WORKING_JSON" 2>/dev/null)
+
+    # Check if commands are found
+    if [ -z "$commands" ]; then
+        echo "Error: No commands found for schedule index $schedule_index."
+        exit 1
+    fi
 
     # Process each command
     echo "$commands" | while IFS= read -r command_obj; do
@@ -32,17 +38,14 @@ if [ -f "$WORKING_JSON" ]; then
         local_path=$(echo "$command_obj" | jq -r '.local_path // empty')
         remote_path=$(echo "$command_obj" | jq -r '.remote_path // empty')
 
-        # Prepare the final command
-        final_command="$command"
-
         # If local path and remote path are set, include them
         if [[ -n "$local_path" && -n "$remote_path" ]]; then
-            echo "$(date -u +"%Y-%m-%d %H:%M:%S"): Running command: $final_command $local_path $remote_path $command_flags" >> "/config/log/rclone.log"
-            eval "$final_command $local_path $remote_path $command_flags --log-file=/config/log/rclone.log --log-format=date,time,UTC"
+            echo "$(date -u +"%Y-%m-%d %H:%M:%S"): Running command: $command $local_path $remote_path $command_flags" >> "$LOG_DIR/rclone.log"
+            eval "$command $local_path $remote_path $command_flags --log-file=$LOG_DIR/rclone.log --log-format=date,time,UTC"
         elif [[ -n "$command" ]]; then
             # If only command is present, run it with flags
-            echo "$(date -u +"%Y-%m-%d %H:%M:%S"): Running command: $final_command $command_flags" >> "/config/log/rclone.log"
-            eval "$final_command $command_flags"
+            echo "$(date -u +"%Y-%m-%d %H:%M:%S"): Running command: $command $command_flags" >> "$LOG_DIR/rclone.log"
+            eval "$command $command_flags"
         fi
     done
 else

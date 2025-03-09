@@ -1,36 +1,45 @@
 #!/bin/bash
 
-set -e
+set -e  # Exit immediately if a command exits with a non-zero status
 
+# Check if STOPATSTART mode is enabled
 if [ "$STOPATSTART" = "true" ]; then
     echo "STOPATSTART mode is enabled."
-    tail -f /dev/null
+    tail -f /dev/null  # Keep the script running indefinitely
 fi
 
 # Ensure required environment variables are set
 if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
     echo "Error: INTERNXT_EMAIL and INTERNXT_PASSWORD must be set."
-    exit 1
+    exit 1  # Exit if required variables are not set
 fi
 
-# Link SSL certificate and key files if provided
-if [ -f "$INTERNXT_SSL_CERT" ]; then
-    if [ "$INTERNXT_SSL_CERT" != "/root/.internxt-cli/certs/cert.crt" ] && [ "$INTERNXT_SSL_CERT" != "/config/internxt/certs/cert.crt" ]; then
-        ln -sf "$INTERNXT_SSL_CERT" /root/.internxt-cli/certs/cert.crt
+# Check if INTERNXT_SSL_CERT and INTERNXT_SSL_KEY are set and not empty
+if [ -n "$INTERNXT_SSL_CERT" ] && [ -n "$INTERNXT_SSL_KEY" ]; then
+    # Check if the SSL certificate file exists
+    if [ -f "$INTERNXT_SSL_CERT" ]; then
+        # Create a symbolic link for the SSL certificate if it does not point to the default location
+        if [ "$INTERNXT_SSL_CERT" != "/root/.internxt-cli/certs/cert.crt" ] && [ "$INTERNXT_SSL_CERT" != "/config/internxt/certs/cert.crt" ]; then
+            ln -sf "$INTERNXT_SSL_CERT" /root/.internxt-cli/certs/cert.crt
+        fi
+    else
+        # Print an error message if the SSL certificate file does not exist
+        echo "Error: SSL certificate file $INTERNXT_SSL_CERT does not exist."
     fi
-else
-    echo "Error: SSL certificate file $INTERNXT_SSL_CERT does not exist."
-fi
 
-if [ -f "$INTERNXT_SSL_KEY" ]; then
-    if [ "$INTERNXT_SSL_KEY" != "/root/.internxt-cli/certs/priv.key" ] && [ "$INTERNXT_SSL_KEY" != "/config/internxt/certs/priv.key" ]; then
-        ln -sf "$INTERNXT_SSL_KEY" /root/.internxt-cli/certs/priv.key
+    # Check if the SSL key file exists
+    if [ -f "$INTERNXT_SSL_KEY" ]; then
+        # Create a symbolic link for the SSL key if it does not point to the default location
+        if [ "$INTERNXT_SSL_KEY" != "/root/.internxt-cli/certs/priv.key" ] && [ "$INTERNXT_SSL_KEY" != "/config/internxt/certs/priv.key" ]; then
+            ln -sf "$INTERNXT_SSL_KEY" /root/.internxt-cli/certs/priv.key
+        fi
+    else
+        # Print an error message if the SSL key file does not exist
+        echo "Error: SSL key file $INTERNXT_SSL_KEY does not exist."
     fi
-else
-    echo "Error: SSL key file $INTERNXT_SSL_KEY does not exist."
 fi
 
-# Check if a root ca was provided
+# Check if a root CA was provided
 if [ -n "$ROOT_CA" ]; then
     # Check if the new certificate file exists
     if [[ -f "$ROOT_CA" ]]; then
@@ -38,6 +47,7 @@ if [ -n "$ROOT_CA" ]; then
         cat "$ROOT_CA" >> "/etc/ssl/certs/ca-certificates.crt"
         echo "Successfully appended $ROOT_CA to /etc/ssl/certs/ca-certificates.crt"
     else
+        # Print an error message if the root CA file does not exist
         echo "Error: $ROOT_CA does not exist."
     fi
 fi
@@ -47,14 +57,14 @@ mkdir -p "/config/log/"
 
 # Set RCLONE_CONFIG if not set
 if [ -z "$RCLONE_CONFIG" ]; then
-    RCLONE_CONFIG = "/config/rclone.conf"
+    RCLONE_CONFIG="/config/rclone.conf"
 fi
 
 # Determine the protocol based on the INTERNXT_HTTPS variable
 if [ "$INTERNXT_HTTPS" = "true" ]; then
-    PROTOCOL="https"
+    PROTOCOL="https"  # Use HTTPS if the variable is set to true
 else
-    PROTOCOL="http"
+    PROTOCOL="http"   # Use HTTP otherwise
 fi
 
 # Function to rotate rClone logs
@@ -62,7 +72,7 @@ rotate_logs() {
     if [ "$RCLONE_KEEP_LOGFILES" != "true" ]; then
         LOCAL_LOG_FILES=("/config/log/rclone.log")
         if [ -n "$RCLONE_LOGFILE_COUNT" ]; then
-            MAX_LOG_FILES="$RCLONE_LOGFILE_COUNT"
+            MAX_LOG_FILES="$RCLONE_LOGFILE_COUNT"  # Use user-defined log file count if provided
         else
             MAX_LOG_FILES=3  # Default log file count
         fi
@@ -77,7 +87,7 @@ rotate_logs() {
                 mv "/config/log/rclone.log.$i" "/config/log/rclone.log.$((i+1))" 2>/dev/null || true
             fi
         done
-        touch /config/log/rclone.log
+        touch /config/log/rclone.log  # Create a new log file
     fi
 }
 
@@ -95,10 +105,12 @@ if rclone config create Internxt webdav \
     echo "Successfully configured rclone internxt webdav remote."
     
     if [ "$DEBUG" = "true" ]; then
+        # Print the rclone configuration if debugging is enabled
         echo "Rclone config:"
         cat $RCLONE_CONFIG
     fi
 else
+    # Exit if the configuration fails
     echo "Failed to configure rclone internxt webdav remote."
     exit 1
 fi
@@ -107,7 +119,7 @@ fi
 if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
     echo "Configuring rclone webgui..."
     
-    rclone_command="rclone rcd"
+    rclone_command="rclone rcd"  # Start the rclone daemon command
 
     # Add --rc-user and --rc-pass only if both are set
     if [ -n "$RCLONE_WEB_GUI_SSL_CERT" ] && [ -n "$RCLONE_WEB_GUI_SSL_KEY" ]; then
@@ -118,9 +130,10 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
     if [ -n "$RCLONE_WEB_GUI_USER" ] && [ -n "$RCLONE_WEB_GUI_PASS" ]; then
         rclone_command+=" --rc-user $RCLONE_WEB_GUI_USER --rc-pass $RCLONE_WEB_GUI_PASS"
     else
-        rclone_command+=" --rc-no-auth"
+        rclone_command+=" --rc-no-auth"  # Disable authentication if user/pass not provided
     fi
 
+    # Add additional parameters for the rclone webgui
     rclone_command+=" --rc-web-gui \
         --rc-web-gui-no-open-browser \
         --rc-web-gui-update \
@@ -129,17 +142,18 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
         --log-file /config/log/rclone.log \
         --log-format date,time,UTC \
         $RCLONE_WEB_GUI_EXTRA_PARAMS"
+    
     if [ "$DEBUG" = "true" ]; then
         echo "Starting rclone with command:"
-        echo $rclone_command
+        echo $rclone_command  # Print the command for debugging
     fi
-    eval "$rclone_command &"
+    eval "$rclone_command &"  # Execute the rclone command in the background
 fi
 
 # Handle TOTP for two-factor authentication
 if [ -n "$INTERNXT_TOTP" ]; then
     echo "Generating TOTP..."
-    TOTP=$(totp "$INTERNXT_TOTP")
+    TOTP=$(totp "$INTERNXT_TOTP")  # Generate the TOTP
     echo "Logging into Internxt with TOTP..."
     internxt login --email="$INTERNXT_EMAIL" --password="$INTERNXT_PASSWORD" --twofactor="$TOTP" --non-interactive
 else
@@ -155,13 +169,12 @@ if [ "$DEBUG" = "true" ]; then
 fi
 mkdir -p "$(dirname "$WEBDAV_CONFIG_PATH")"  # Ensure the directory exists
 
-# Create JSON configuration
+# Create JSON configuration for WebDAV
 if [ "$INTERNXT_HTTPS" = "true" ]; then
     echo "{\"port\":\"$INTERNXT_WEB_PORT\",\"protocol\":\"https\"}" > "$WEBDAV_CONFIG_PATH"
 else
     echo "{\"port\":\"$INTERNXT_WEB_PORT\",\"protocol\":\"http\"}" > "$WEBDAV_CONFIG_PATH"
 fi
-
 
 if [ "$DEBUG" = "true" ]; then
     echo "WebDAV configuration written successfully."
@@ -181,8 +194,9 @@ fi
 
 # Create a working copy of the JSON configuration if RCLON_CRON_CONF is set
 WORKING_JSON="/working/rclone_cron.json"
-mkdir -p /working
+mkdir -p /working  # Create the working directory
 
+# Check if a configuration file is provided
 if [ -n "$RCLON_CRON_CONF" ] && [ -f "$RCLON_CRON_CONF" ]; then
     # Remove existing copy if it exists
     [ -f "$WORKING_JSON" ] && rm "$WORKING_JSON"
@@ -190,8 +204,8 @@ if [ -n "$RCLON_CRON_CONF" ] && [ -f "$RCLON_CRON_CONF" ]; then
     # Create a copy of the given JSON configuration
     cp "$RCLON_CRON_CONF" "$WORKING_JSON"
 else
-    echo " Initialize with an empty JSON structure. No config file is provided"
-    echo "{\"cron_jobs\": []}" > "$WORKING_JSON"
+    echo "Initialize with an empty JSON structure. No config file is provided"
+    echo "{\"cron_jobs\": []}" > "$WORKING_JSON"  # Initialize with an empty structure
 fi
 
 # Check if cron_jobs key exists and initialize it if not
@@ -202,18 +216,20 @@ fi
 
 # Add the environment variables to the JSON file
 for i in {1..20}; do
-    cron_command_var="CRON_COMMAND_$i"
+    cron_command_var="CRON_COMMAND_$i"  # Environment variable for command
+    cron_command=""
 
-    cron_command_flags_var="CRON_COMMAND_FLAGS_$i"
+    cron_command_flags_var="CRON_COMMAND_FLAGS_$i"  # Environment variable for command flags
+    cron_command_flags=""
+    
+    local_path_var="LOCAL_PATH_$i"  # Environment variable for local path
+    local_path="${!local_path_var}"  # Get the value of LOCAL_PATH
 
-    local_path_var="LOCAL_PATH_$i"
-    local_path="${!local_path_var}"
+    remote_path_var="REMOTE_PATH_$i"  # Environment variable for remote path
+    remote_path="${!remote_path_var}"  # Get the value of REMOTE_PATH
 
-    remote_path_var="REMOTE_PATH_$i"
-    remote_path="${!remote_path_var}"
-
-    schedule_var="CRON_SCHEDULE_$i"
-    schedule="${!schedule_var:-$CRON_SCHEDULE}"
+    schedule_var="CRON_SCHEDULE_$i"  # Environment variable for cron schedule
+    schedule="${!schedule_var:-$CRON_SCHEDULE}"  # Get the schedule or default
 
     # Determine the command to use
     if [ -n "${!cron_command_var}" ]; then
@@ -279,8 +295,8 @@ if [ -n "$CRON_SCHEDULE" ]; then
         done
     fi
 
-    /usr/bin/crontab /var/spool/cron/root
-    service cron start
+    /usr/bin/crontab /var/spool/cron/root  # Load the new crontab
+    service cron start  # Start the cron service
     echo "Cron service started."
 fi
 
