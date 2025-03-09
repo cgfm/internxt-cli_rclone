@@ -14,6 +14,11 @@ if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
     exit 1  # Exit if required variables are not set
 fi
 
+# Debug message for environment variables check
+if [ "$DEBUG" = "true" ]; then
+    echo "INTERNXT_EMAIL and INTERNXT_PASSWORD are set."
+fi
+
 # Check if INTERNXT_SSL_CERT and INTERNXT_SSL_KEY are set and not empty
 if [ -n "$INTERNXT_SSL_CERT" ] && [ -n "$INTERNXT_SSL_KEY" ]; then
     # Check if the SSL certificate file exists
@@ -21,6 +26,9 @@ if [ -n "$INTERNXT_SSL_CERT" ] && [ -n "$INTERNXT_SSL_KEY" ]; then
         # Create a symbolic link for the SSL certificate if it does not point to the default location
         if [ "$INTERNXT_SSL_CERT" != "/root/.internxt-cli/certs/cert.crt" ] && [ "$INTERNXT_SSL_CERT" != "/config/internxt/certs/cert.crt" ]; then
             ln -sf "$INTERNXT_SSL_CERT" /root/.internxt-cli/certs/cert.crt
+            if [ "$DEBUG" = "true" ]; then
+                echo "Linked SSL certificate: $INTERNXT_SSL_CERT"
+            fi
         fi
     else
         # Print an error message if the SSL certificate file does not exist
@@ -32,6 +40,9 @@ if [ -n "$INTERNXT_SSL_CERT" ] && [ -n "$INTERNXT_SSL_KEY" ]; then
         # Create a symbolic link for the SSL key if it does not point to the default location
         if [ "$INTERNXT_SSL_KEY" != "/root/.internxt-cli/certs/priv.key" ] && [ "$INTERNXT_SSL_KEY" != "/config/internxt/certs/priv.key" ]; then
             ln -sf "$INTERNXT_SSL_KEY" /root/.internxt-cli/certs/priv.key
+            if [ "$DEBUG" = "true" ]; then
+                echo "Linked SSL key: $INTERNXT_SSL_KEY"
+            fi
         fi
     else
         # Print an error message if the SSL key file does not exist
@@ -46,6 +57,9 @@ if [ -n "$ROOT_CA" ]; then
         # Append the new CA certificate to the ca-certificates.crt file
         cat "$ROOT_CA" >> "/etc/ssl/certs/ca-certificates.crt"
         echo "Successfully appended $ROOT_CA to /etc/ssl/certs/ca-certificates.crt"
+        if [ "$DEBUG" = "true" ]; then
+            echo "Root CA added: $ROOT_CA"
+        fi
     else
         # Print an error message if the root CA file does not exist
         echo "Error: $ROOT_CA does not exist."
@@ -60,11 +74,21 @@ if [ -z "$RCLONE_CONFIG" ]; then
     RCLONE_CONFIG="/config/rclone.conf"
 fi
 
+# Debug message for RCLONE_CONFIG
+if [ "$DEBUG" = "true" ]; then
+    echo "Using RCLONE_CONFIG: $RCLONE_CONFIG"
+fi
+
 # Determine the protocol based on the INTERNXT_HTTPS variable
 if [ "$INTERNXT_HTTPS" = "true" ]; then
     PROTOCOL="https"  # Use HTTPS if the variable is set to true
 else
     PROTOCOL="http"   # Use HTTP otherwise
+fi
+
+# Debug message for protocol
+if [ "$DEBUG" = "true" ]; then
+    echo "Using protocol: $PROTOCOL"
 fi
 
 # Function to rotate rClone logs
@@ -88,6 +112,9 @@ rotate_logs() {
             fi
         done
         touch /config/log/rclone.log  # Create a new log file
+        if [ "$DEBUG" = "true" ]; then
+            echo "Log files rotated. New log file created."
+        fi
     fi
 }
 
@@ -124,13 +151,22 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
     # Add --rc-user and --rc-pass only if both are set
     if [ -n "$RCLONE_WEB_GUI_SSL_CERT" ] && [ -n "$RCLONE_WEB_GUI_SSL_KEY" ]; then
         rclone_command+=" --rc-cert $RCLONE_WEB_GUI_SSL_CERT --rc-key $RCLONE_WEB_GUI_SSL_KEY"
+        if [ "$DEBUG" = "true" ]; then
+            echo "Using SSL for rclone webgui with cert: $RCLONE_WEB_GUI_SSL_CERT"
+        fi
     fi
 
     # Add --rc-user and --rc-pass only if both are set
     if [ -n "$RCLONE_WEB_GUI_USER" ] && [ -n "$RCLONE_WEB_GUI_PASS" ]; then
         rclone_command+=" --rc-user $RCLONE_WEB_GUI_USER --rc-pass $RCLONE_WEB_GUI_PASS"
+        if [ "$DEBUG" = "true" ]; then
+            echo "Using authentication for rclone webgui."
+        fi
     else
         rclone_command+=" --rc-no-auth"  # Disable authentication if user/pass not provided
+        if [ "$DEBUG" = "true" ]; then
+            echo "No authentication for rclone webgui."
+        fi
     fi
 
     # Add additional parameters for the rclone webgui
@@ -203,6 +239,9 @@ if [ -n "$RCLON_CRON_CONF" ] && [ -f "$RCLON_CRON_CONF" ]; then
 
     # Create a copy of the given JSON configuration
     cp "$RCLON_CRON_CONF" "$WORKING_JSON"
+    if [ "$DEBUG" = "true" ]; then
+        echo "Copied configuration from $RCLON_CRON_CONF to $WORKING_JSON"
+    fi
 else
     echo "Initialize with an empty JSON structure. No config file is provided"
     echo "{\"cron_jobs\": []}" > "$WORKING_JSON"  # Initialize with an empty structure
@@ -235,11 +274,20 @@ for i in {1..20}; do
     if [ -n "${!cron_command_var}" ]; then
         # Use user-defined command if provided
         cron_command="${!cron_command_var}"
+        if [ "$DEBUG" = "true" ]; then
+            echo "Using user-defined command for index $i: $cron_command"
+        fi
     elif [ -n "$local_path" ] && [ -n "$remote_path" ]; then
         # Use default command only if both paths are set
         cron_command="$CRON_COMMAND"
+        if [ "$DEBUG" = "true" ]; then
+            echo "Using default command for index $i: $cron_command"
+        fi
     else
         # Skip entry if no valid command can be determined
+        if [ "$DEBUG" = "true" ]; then
+            echo "No valid command for index $i. Skipping."
+        fi
         continue
     fi
     
@@ -247,9 +295,15 @@ for i in {1..20}; do
     if [ -n "${!cron_command_flags_var}" ]; then
         # Use user-defined command flags if provided
         cron_command_flags="${!cron_command_flags_var}"
+        if [ "$DEBUG" = "true" ]; then
+            echo "Using user-defined command flags for index $i: $cron_command_flags"
+        fi
     elif [ -n "$local_path" ] && [ -n "$remote_path" ]; then
         # Use default command flags only if both paths are set
         cron_command_flags="$CRON_COMMAND_FLAGS"
+        if [ "$DEBUG" = "true" ]; then
+            echo "Using default command flags for index $i: $cron_command_flags"
+        fi
     fi
     
     # Check if the schedule is not empty
@@ -292,6 +346,9 @@ if [ -n "$CRON_SCHEDULE" ]; then
             schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
             # Register the cron job in crontab
             echo "$schedule root flock -n /tmp/cron.lock /usr/local/bin/rclone_cron.sh \"$i\"" >> /var/spool/cron/root
+            if [ "$DEBUG" = "true" ]; then
+                echo "Added cron job for schedule '$schedule' at index $i."
+            fi
         done
     fi
 

@@ -26,15 +26,18 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Create directories for the rclone configuration and SSL certs
+RUN mkdir -p /config/log /config/internxt/certs /root/.internxt-cli
+RUN touch /config/log/rclone.log
+
+# Create a symlink to bind /root/.internxt-cli to /config/internxt
+RUN ln -s /config/internxt /root/.internxt-cli
+
 # Install the Internxt CLI
 RUN npm install -g @internxt/cli
 
 # Set the timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-# Create directories for the rclone configuration and SSL certs
-RUN mkdir -p /config/log /root/.internxt-cli/certs
-RUN touch /config/log/rclone.log
 
 # Copy the internxt_script.sh and health_check.sh into the container
 COPY health_check.sh /usr/local/bin/health_check.sh
