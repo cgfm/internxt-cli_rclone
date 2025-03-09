@@ -30,9 +30,11 @@ The following environment variables can be set when running the Docker container
 | `RCLONE_WEB_GUI_SSL_CERT`                               | Path to the SSL certificate for HTTPS (if enabled).                                                                                                |
 | `RCLONE_WEB_GUI_SSL_KEY`                                | Path to the SSL key for HTTPS (if enabled).                                                                                                        |
 | `RCLONE_WEB_GUI_EXTRA_PARAMS`                           | Additional parameters for rclone Web GUI (optional). Default is an empty string.                                                                   |
+| `RCLONE_CRON_CONF`                                       | Path to the JSON configuration file for cron jobs. Default is `/config/rclone_cron.json`. If this file does not exist, it will be ignored.         |
+
 | `CRON_COMMAND`                                          | Command to be executed by cron (optional). Default is `rclone copy`. The command will be run with each pair of local and remote paths.<br>If remote files should be deleted if the don't exists locally anymore set this to `rclone sync`. **WARNING:** This will delete files on the remote if they are not present locally. **This could cause data loss!**  |
 | `CRON_COMMAND_FLAGS`                                    | The Flags appended to the command above  (optional). Default is ` --create-empty-src-dirs --retries 5 --verbose`. The command will be run with each pair of local and remote paths. |
-| `CRON_SCHEDULE`                                         | Cron schedule for running the specified command. Default is */15 * * * *. If an empty String is set no cron job  will be executed.                                   |
+| `CRON_SCHEDULE`                                         | Cron schedule for running the specified command. Default is */15 * * * *.                                    |
 | `LOCAL_PATH_1` to `LOCAL_PATH_20`                       | Up to 20 local paths where files will be synchronized. Each local path must have a corresponding remote path.                                      |
 | `REMOTE_PATH_1` to `REMOTE_PATH_20`                     | Up to 20 remote paths for synchronization with the Internxt service.                                                                               |
 | `CUSTOM_CRON_COMMAND_1` to `CUSTOM_CRON_COMMAND_20`     | Up to 20 custom commands can be set. Details are explained at [Building and Executing Cron Commands](#custom-cron-command).                        |
@@ -147,6 +149,53 @@ rclone copy /local/path4 remote:path4 --create-empty-src-dirs --retries 5 --verb
 command 5
 ```
 
+## JSON Configuration
+
+The cron jobs and commands you define are stored at runtime in a JSON file located at `/working/rclone_cron.json`. You can provide your own JSON file to customize the cron jobs and commands by setting the `RCLONE_CRON_CONF` environment variable to the path of your JSON file or by simply storing your JSON file at `/config/rclone_cron.json`. The structure of this JSON file allows for dynamic command execution based on the defined environment variables and the `RCLONE_CRON_CONF` file. You can Use the ENV Vars and the JSON file both at the same time. they will be combined in the `/working/rclone_cron.json` file.
+
+- **cron_jobs**: This is an array containing objects for each scheduled job. Each object need to have:
+  - **schedule**: The cron schedule for the job.
+  - **commands**: An array of command objects to execute at the specified schedule.
+
+### Example JSON Structure
+
+```json
+{
+  "cron_jobs": [
+    {
+      "schedule": "*/15 * * * *",
+      "commands": [
+        {
+          "command": "rclone copy",
+          "command_flags": "--create-empty-src-dirs --retries 5 --verbose",
+          "local_path": "/local/path1",
+          "remote_path": "remote:path1"
+        },
+        {
+          "command": "rclone copy",
+          "command_flags": "--create-empty-src-dirs --retries 5 --verbose",
+          "local_path": "/local/path2",
+          "remote_path": "remote:path2"
+        }
+      ]
+    },
+    {
+      "schedule": "0 * * * *",
+      "commands": [
+        {
+          "command": "my_backup_script.sh"
+        },
+        {
+          "command": "rclone copy",
+          "command_flags": "--create-empty-src-dirs --retries 5 --verbose",
+          "local_path": "/local/backup/path",
+          "remote_path": "remote:backup/path"
+        }
+      ]
+    }
+  ]
+}
+```
 ## rClone Configuration
 
 This project includes a default rClone WebDAV remote named **Internxt**, which is configured to connect to the local Internxt CLI. This setup enables seamless file management within the Internxt service.

@@ -228,19 +228,24 @@ else
     echo "Cron schedule is set to: $CRON_SCHEDULE"
 fi
 
-# Create a working copy of the JSON configuration if RCLON_CRON_CONF is set
+# Create a working copy of the JSON configuration if RCLONE_CRON_CONF is set
 WORKING_JSON="/working/rclone_cron.json"
 mkdir -p /working  # Create the working directory
 
+# If no RCLONE_CRON_CONF is provided, check for the default location
+if [ -z "$RCLONE_CRON_CONF" ] && [ -f "/config/rclone_cron.json" ]; then
+    RCLONE_CRON_CONF="/config/rclone_cron.json"
+fi
+
 # Check if a configuration file is provided
-if [ -n "$RCLON_CRON_CONF" ] && [ -f "$RCLON_CRON_CONF" ]; then
+if [ -n "$RCLONE_CRON_CONF" ] && [ -f "$RCLONE_CRON_CONF" ]; then
     # Remove existing copy if it exists
     [ -f "$WORKING_JSON" ] && rm "$WORKING_JSON"
 
     # Create a copy of the given JSON configuration
-    cp "$RCLON_CRON_CONF" "$WORKING_JSON"
+    cp "$RCLONE_CRON_CONF" "$WORKING_JSON"
     if [ "$DEBUG" = "true" ]; then
-        echo "Copied configuration from $RCLON_CRON_CONF to $WORKING_JSON"
+        echo "Copied configuration from $RCLONE_CRON_CONF to $WORKING_JSON"
     fi
 else
     echo "Initialize with an empty JSON structure. No config file is provided"
@@ -332,15 +337,15 @@ for i in {1..20}; do
     fi
 done
 
-# Start cron jobs based on the schedules in the JSON file
-if [ -n "$CRON_SCHEDULE" ]; then
-    # Initialize crontab if it doesn't exist
-    touch /var/spool/cron/root
+if [ -f "$WORKING_JSON" ]; then
+    # Iterate over each job in the JSON file
+    total_jobs=$(jq '.cron_jobs | length' "$WORKING_JSON")
+    # Start cron jobs based on the schedules in the JSON file
+    if [ "$total_jobs" -gt 0 ]; then
+        # Initialize crontab if it doesn't exist
+        touch /var/spool/cron/root
 
-    if [ -f "$WORKING_JSON" ]; then
         # Iterate over each job in the JSON file
-        total_jobs=$(jq '.cron_jobs | length' "$WORKING_JSON")
-
         for ((i=0; i<total_jobs; i++)); do
             # Extract the schedule for the current job
             schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
@@ -350,11 +355,11 @@ if [ -n "$CRON_SCHEDULE" ]; then
                 echo "Added cron job for schedule '$schedule' at index $i."
             fi
         done
-    fi
 
-    /usr/bin/crontab /var/spool/cron/root  # Load the new crontab
-    service cron start  # Start the cron service
-    echo "Cron service started."
+        /usr/bin/crontab /var/spool/cron/root  # Load the new crontab
+        service cron start  # Start the cron service
+        echo "Cron service started."
+    fi
 fi
 
 # Start log monitoring for rclone and Internxt
