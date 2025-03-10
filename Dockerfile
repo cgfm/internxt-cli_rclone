@@ -44,6 +44,11 @@ COPY rclone_cron.sh /usr/local/bin/rclone_cron.sh
 # Make the scripts executable
 RUN chmod +x /usr/local/bin/health_check.sh /usr/local/bin/entrypoint.sh /usr/local/bin/rclone_cron.sh
 
+# Create the SSH directory and set permissions to allow SSH key authentication
+RUN mkdir -p /root/.ssh/id_rsa
+RUN chmod 700 /root/.ssh && \
+    chmod 600 /root/.ssh/id_rsa
+
 # Expose necessary ports
 # Internxt WebDAV port
 EXPOSE 3005

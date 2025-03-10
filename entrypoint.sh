@@ -22,6 +22,7 @@ else
     fi
 fi
 # Create a symbolic link for /root/.internxt-cli to /data
+[ -d "/root/.internxt-cli" ] &&  rm -r /root/.internxt-cli
 ln -s /data /root/.internxt-cli
 
 
@@ -221,7 +222,7 @@ else
 fi
 
 # Write the WebDAV configuration to the config file
-WEBDAV_CONFIG_PATH="$HOME/.internxt-cli/config.webdav.inxt"
+WEBDAV_CONFIG_PATH="/data/config.webdav.inxt"
 
 if [ "$DEBUG" = "true" ]; then
     echo "Writing WebDAV configuration to $WEBDAV_CONFIG_PATH..."
@@ -251,10 +252,6 @@ else
     echo "Cron schedule is set to: $CRON_SCHEDULE"
 fi
 
-# Create a working copy of the JSON configuration if RCLONE_CRON_CONF is set
-WORKING_JSON="/working/rclone_cron.json"
-mkdir -p /working  # Create the working directory
-
 # Set default values for CRON_COMMAND and CRON_COMMAND_FLAGS if not provided
 if [ -z "$CRON_COMMAND" ]; then
     CRON_COMMAND="rclone copy"  # Default command
@@ -268,6 +265,10 @@ fi
 if [ -z "$RCLONE_CRON_CONF" ] && [ -f "/config/rclone_cron.json" ]; then
     RCLONE_CRON_CONF="/config/rclone_cron.json"
 fi
+
+# Create a working copy of the JSON configuration if RCLONE_CRON_CONF is set
+WORKING_JSON="/working/rclone_cron.json"
+mkdir -p /working  # Create the working directory
 
 # Check if a configuration file is provided
 if [ -n "$RCLONE_CRON_CONF" ] && [ -f "$RCLONE_CRON_CONF" ]; then
