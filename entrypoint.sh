@@ -80,9 +80,9 @@ if [ -n "$ROOT_CA" ]; then
     if [[ -f "$ROOT_CA" ]]; then
         # Append the new CA certificate to the ca-certificates.crt file
         cat "$ROOT_CA" >> "/etc/ssl/certs/ca-certificates.crt"
-        echo "Successfully appended $ROOT_CA to /etc/ssl/certs/ca-certificates.crt"
+        echo "Root CA added: $ROOT_CA"
         if [ "$DEBUG" = "true" ]; then
-            echo "Root CA added: $ROOT_CA"
+            echo "Successfully appended $ROOT_CA to /etc/ssl/certs/ca-certificates.crt"
         fi
     else
         # Print an error message if the root CA file does not exist
