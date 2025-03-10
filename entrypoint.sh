@@ -7,7 +7,7 @@ if [ ! -f /data/init_done ]; then
     echo "First run: copying contents from /root/.internxt-cli to /data..."
 
     # Copy contents from /root/.internxt-cli to /data
-    cp /root/.internxt-cli/* /data/
+    cp -r /root/.internxt-cli/* /data/
     cp -r /root/.internxt-cli/logs /config/log/internxt
     
     # Create the init_done file to mark that initialization is complete
