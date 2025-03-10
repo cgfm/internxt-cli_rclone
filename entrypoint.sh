@@ -366,6 +366,11 @@ for i in {1..20}; do
     fi
 done
 
+if [ "$DEBUG" = "true" ]; then
+    echo "Working JSON created:" > /config/log/rclone.log
+    cat "$WORKING_JSON" > /config/log/rclone.log
+fi
+
 if [ -f "$WORKING_JSON" ]; then
     # Iterate over each job in the JSON file
     total_jobs=$(jq '.cron_jobs | length' "$WORKING_JSON")
@@ -388,6 +393,11 @@ if [ -f "$WORKING_JSON" ]; then
         /usr/bin/crontab /var/spool/cron/root  # Load the new crontab
         service cron start  # Start the cron service
         echo "Cron service started."
+        
+        if [ "$DEBUG" = "true" ]; then
+            echo "Cron jobs created created:" > /config/log/rclone.log
+            cat /var/spool/cron/root > /config/log/rclone.log
+        fi
     fi
 fi
 
