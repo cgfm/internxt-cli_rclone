@@ -115,29 +115,44 @@ if [ "$DEBUG" = "true" ]; then
     echo "Using protocol: $PROTOCOL"
 fi
 
-# Function to rotate rClone logs
+# Function to rotate logs
 rotate_logs() {
-    if [ "$RCLONE_KEEP_LOGFILES" != "true" ]; then
-        LOCAL_LOG_FILES=("/config/log/rclone.log")
-        if [ -n "$RCLONE_LOGFILE_COUNT" ]; then
-            MAX_LOG_FILES="$RCLONE_LOGFILE_COUNT"  # Use user-defined log file count if provided
+    if [ "$LOG_KEEP_LOGFILES" != "true" ]; then
+        # Array of log files to rotate
+        LOCAL_LOG_FILES=(
+            "/config/log/rclone.log"
+            "/config/log/internxt/internxt-cli-error.log"
+            "/config/log/internxt/internxt-webdav-error.log"
+            "/config/log/internxt/internxt-cli-combined.log"
+            "/config/log/internxt/internxt-webdav-combined.log"
+        )
+
+        # Determine the maximum number of log files to keep
+        if [ -n "$LOG_LOGFILE_COUNT" ]; then
+            MAX_LOG_FILES="$LOG_LOGFILE_COUNT"
         else
             MAX_LOG_FILES=3  # Default log file count
         fi
 
         # Rotate logs
-        for ((i=MAX_LOG_FILES; i>0; i--)); do
-            if [ $i -eq $MAX_LOG_FILES ]; then
-                # Rename the current log to log.1
-                mv "/config/log/rclone.log" "/config/log/rclone.log.$i" 2>/dev/null || true
-            else
-                # Rename older logs
-                mv "/config/log/rclone.log.$i" "/config/log/rclone.log.$((i+1))" 2>/dev/null || true
+        for log_file in "${LOCAL_LOG_FILES[@]}"; do
+            if [ -f "$log_file" ]; then
+                for ((i=MAX_LOG_FILES; i>0; i--)); do
+                    if [ $i -eq $MAX_LOG_FILES ]; then
+                        # Rename the current log to log.1
+                        mv "$log_file" "$log_file.$i" 2>/dev/null || true
+                    elif [ -f "$log_file.$i" ]; then
+                        # Rename older logs
+                        mv "$log_file.$i" "$log_file.$((i+1))" 2>/dev/null || true
+                    fi
+                done
+                # Create a new log file
+                touch "$log_file"
             fi
         done
-        touch /config/log/rclone.log  # Create a new log file
+
         if [ "$DEBUG" = "true" ]; then
-            echo "Log files rotated. New log file created."
+            echo "Log files rotated. New log files created."
         fi
     fi
 }
