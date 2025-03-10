@@ -371,8 +371,8 @@ for i in {1..20}; do
 done
 
 if [ "$DEBUG" = "true" ]; then
-    echo "Working JSON created:" > /config/log/rclone.log
-    cat "$WORKING_JSON" > /config/log/rclone.log
+    echo "Working JSON created:"
+    cat "$WORKING_JSON"
 fi
 
 if [ -f "$WORKING_JSON" ]; then
@@ -399,8 +399,8 @@ if [ -f "$WORKING_JSON" ]; then
         echo "Cron service started."
         
         if [ "$DEBUG" = "true" ]; then
-            echo "Cron jobs created created:" > /config/log/rclone.log
-            cat /var/spool/cron/root > /config/log/rclone.log
+            echo "Cron jobs created created:"
+            cat /var/spool/cron/root
         fi
     fi
 fi
@@ -410,17 +410,16 @@ echo "--------------------------------------------------"
 echo "Starting log monitoring for rclone and Internxt..."
 echo "--------------------------------------------------"
 
-RCLONE_LOG="/config/log/rclone.log"
-
-# Monitor all Internxt log files dynamically
-INTERNXT_LOG_FILES=$(find "/root/.internxt-cli/logs" -type f)
-
-# Use tail to follow both logs
+# Use tail to follow the logs
 {
-    tail -f "$RCLONE_LOG" &  # Run rclone log monitoring in the background
-    for log_file in $INTERNXT_LOG_FILES; do
-        tail -f "$log_file" &  # Run each Internxt log monitoring in the background
-    done
+    tail -f "/config/log/rclone.log" &  # Run rclone log monitoring in the background
+    # Run internxt log monitoring in the background
+    tail -f "/config/log/internxt/internxt-cli-error.log" &
+    tail -f "/config/log/internxt/internxt-webdav-error.log" &
+    if [ "$DEBUG" = "true" ]; then
+        tail -f "/config/log/internxt/internxt-cli-combined.log" &
+        tail -f "/config/log/internxt/internxt-webdav-combined.log" &
+    fi    
     wait  # Wait for all background processes to finish
 } | while read -r line; do
     # Enhanced logic to differentiate between rclone and internxt logs
