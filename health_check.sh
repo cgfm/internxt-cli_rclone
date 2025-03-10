@@ -18,7 +18,7 @@ fi
 if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
    
     # Determine whether to use HTTP or HTTPS for rclone Web GUI
-    if [ -n "$RCLONE_SSL_CERT" ] && [ -n "$RCLONE_SSL_KEY" ]; then
+    if [ -n "$RCLONE_WEB_GUI_SSL_CERT" ] && [ -n "$RCLONE_WEB_GUI_SSL_KEY" ]; then
         WEB_GUI_URL="https://localhost:$RCLONE_WEB_GUI_PORT"
     else
         WEB_GUI_URL="http://localhost:$RCLONE_WEB_GUI_PORT"
@@ -36,18 +36,35 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
     fi
 fi
 
-# Check if cron jobs are enabled and running only if CRON_SCHEDULE is not empty
-if [ -n "$CRON_SCHEDULE" ]; then
+WORKING_JSON="/working/rclone_cron.json"
+
+# Check if the WORKING_JSON file exists
+if [ ! -f "$WORKING_JSON" ]; then
+    error_exit "Working JSON configuration file '$WORKING_JSON' does not exist."
+fi
+
+# Check the number of cron jobs defined in the JSON file
+total_jobs=$(jq '.cron_jobs | length' "$WORKING_JSON")
+
+# If there are cron jobs defined in the JSON file, proceed with the checks
+if [ "$total_jobs" -gt 0 ]; then
+
+    # Check if the cron service is running
     if ! pgrep cron > /dev/null; then
         error_exit "Cron service is not running."
     fi
 
-    # Check if cron jobs are set correctly
-    if ! crontab -l | grep -q "$CRON_SCHEDULE"; then
-        error_exit "No cron jobs found for the specified schedule."
-    fi
+    # Verify that the cron jobs are registered in crontab
+    for ((i=0; i<total_jobs; i++)); do
+        # Extract the schedule for the current job
+        schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
+        
+        # Check if the schedule exists in crontab
+        if ! crontab -l | grep -q "$schedule"; then
+            error_exit "Cron job $i with schedule '$schedule' is not found in crontab."
+        fi
+    done
 fi
-
 # If all checks pass
 echo "Health check passed."
 exit 0
