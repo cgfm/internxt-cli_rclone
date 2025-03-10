@@ -30,14 +30,16 @@ The following environment variables can be set when running the Docker container
 | `RCLONE_WEB_GUI_SSL_CERT`                               | Path to the SSL certificate for HTTPS (if enabled).                                                                                                |
 | `RCLONE_WEB_GUI_SSL_KEY`                                | Path to the SSL key for HTTPS (if enabled).                                                                                                        |
 | `RCLONE_WEB_GUI_EXTRA_PARAMS`                           | Additional parameters for rclone Web GUI (optional). Default is an empty string.                                                                   |
-| `RCLONE_CRON_CONF`                                       | Path to the JSON configuration file for cron jobs. Default is `/config/rclone_cron.json`. If this file does not exist, it will be ignored.         |
+| `RCLONE_CRON_CONF`                                       | Path to the JSON configuration file for cron jobs. Default is `/config/rclone_cron.json`. If this file does not exist, it will be ignored. Details are explained at [Building and Executing Cron Commands](#custom-cron-command)        |
 
-| `CRON_COMMAND`                                          | Command to be executed by cron (optional). Default is `rclone copy`. The command will be run with each pair of local and remote paths.<br>If remote files should be deleted if the don't exists locally anymore set this to `rclone sync`. **WARNING:** This will delete files on the remote if they are not present locally. **This could cause data loss!**  |
-| `CRON_COMMAND_FLAGS`                                    | The Flags appended to the command above  (optional). Default is ` --create-empty-src-dirs --retries 5 --verbose`. The command will be run with each pair of local and remote paths. |
-| `CRON_SCHEDULE`                                         | Cron schedule for running the specified command. Default is */15 * * * *.                                    |
+| `CRON_COMMAND`                                          | Default cron command to be executed by cron (optional). Can be overwritten by the `CRON_COMMAND_*` variables. Default is `rclone copy`. The command will be run with each pair of local and remote paths.<br>If remote files should be deleted if the don't exists locally anymore set this to `rclone sync`. **WARNING:** This will delete files on the remote if they are not present locally. **This could cause data loss!**  |
+| `CRON_COMMAND_FLAGS`                                    | The Flags appended to the command above  (optional). Can be overwritten by the `CRON_COMMAND_FLAGS_*` variables. Default is ` --create-empty-src-dirs --retries 5 --verbose`. The command will be run with each pair of local and remote paths. |
+| `CRON_SCHEDULE`                                         | Cron schedule for running the specified command. Can be overwritten by the `CRON_SCHEDULE_*` variables. Default is */15 * * * *.                                    |
 | `LOCAL_PATH_1` to `LOCAL_PATH_20`                       | Up to 20 local paths where files will be synchronized. Each local path must have a corresponding remote path.                                      |
 | `REMOTE_PATH_1` to `REMOTE_PATH_20`                     | Up to 20 remote paths for synchronization with the Internxt service.                                                                               |
-| `CUSTOM_CRON_COMMAND_1` to `CUSTOM_CRON_COMMAND_20`     | Up to 20 custom commands can be set. Details are explained at [Building and Executing Cron Commands](#custom-cron-command).                        |
+| `CRON_COMMAND_1` to `CRON_COMMAND_20`                   | Up to 20 custom commands can be set. Details are explained at [Building and Executing Cron Commands](#custom-cron-command).                        |
+| `CRON_COMMAND_FLAGS_1` to `CRON_COMMAND_FLAGS_20`                   | Up to 20 flags for the associated custom command can be set. Details are explained at [JSON Configuration](#json-configuration).                        |
+| `CRON_SCHEDULE_1` to `CRON_SCHEDULE_20`                   | Up to 20 schedules for the associated custom command and/or the associated local and remote path can be set. Details are explained at [Building and Executing Cron Commands](#custom-cron-command).                        |
 | `ROOT_CA`                                               | If the path to a root ca is set it will be appended to the ca-certificates.crt file to avoid "Unknown CA" errors (optional).                       |
 | `TZ`                                                    | Timezone for the application. Default is `Etc/UTC`.                                                                                                |
 | `DEBUG`                                                 | If set to `true`, the container will run in debug mode. Default is `false`.                                                                        |
@@ -54,16 +56,19 @@ The Docker image is available on Docker Hub under the name `cgfm/internxt-cli_rc
 You can run the Docker container using the following command:
 
 ```bash
-docker run -e INTERNXT_EMAIL="your_email@example.com" \
+docker run -v /path/to/local/config:/config \
+           -v /path/to/local/internxt/data:/data \
+           --name internxt-cli_container \
+           -e INTERNXT_EMAIL="your_email@example.com" \
            -e INTERNXT_PASSWORD="your_password" \
            -e CRON_SCHEDULE="*/15 * * * *" \
            -e REMOTE_PATH_1="remote:path1" \
            -e LOCAL_PATH_1="/local/path1" \
-           -e TZ="America/New_York" \
+           -e TZ="Europe/Berlin" \
            -p 3005:3005 \
            -p 5572:5572 \
            -p 53682:53682 \
-           --rm cgfm/internxt-cli_rclone
+           cgfm/internxt-cli_rclone
 ```
 
 ### Docker Compose Example
@@ -93,8 +98,41 @@ services:
       - "53682:53682"
     volumes:
       - /local/config/dir:/config
+      - /local/data/dir:/data
     restart: unless-stopped
 ```
+
+## Directory Structure: `/config` and `/data`
+
+### Overview
+
+This application utilizes two primary directories—`/config` and `/data`—to manage configurations and persistent data effectively. Understanding the purpose of each directory helps ensure the application runs smoothly and that data is preserved across container restarts.
+
+### `/data` Directory
+
+- **Purpose**: The `/data` directory is used to store persistent data related to the Internxt CLI.
+- **Initialization Process**:
+  - On the first run of the container, the `entrypoint.sh` script checks for the existence of the `init_done` file in the `/data` directory to determine if the initialization process has already occurred.
+  - If the `init_done` file does not exist, the script performs the following actions:
+    - Copies the `config.webdav.inxt` file from `/root/.internxt-cli` to `/data`. This file contains the WebDAV configuration for the Internxt service.
+    - Copies the `internxt-cli-drive.sqlite` database file from `/root/.internxt-cli` to `/data`. This database stores important data for the Internxt CLI.
+    - Copies the entire `logs` directory from `/root/.internxt-cli` to `/config/log/internxt`, allowing for access to logs related to the Internxt CLI.
+
+  - After copying these files, the script creates a file named `init_done` in the `/data` directory to signal that the initialization has been completed.
+
+- **Subsequent Runs**:
+  - On subsequent container runs, if the `init_done` file exists, the initialization process will be skipped. This prevents overwriting existing configurations and data.
+  
+### `/config` Directory
+
+- **Purpose**: The `/config` directory is used to store configuration files and logs for the application.
+- **Contents**:
+  - **Logs**: The application writes logs to `/config/log`, which allows for monitoring and debugging.
+  - **Internxt Logs**: The logs related to the Internxt CLI are specifically stored in `/config/log/internxt`, which is created during the first run if it does not already exist.
+
+### Summary
+
+Using the `/config` and `/data` directories allows the application to maintain a clean separation between configuration and persistent data. This design ensures that important data is not lost between container restarts and provides a straightforward method for managing log files and configurations.
 
 ## Building and Executing Cron Commands
 ### Cron Command
@@ -196,6 +234,7 @@ The cron jobs and commands you define are stored at runtime in a JSON file locat
   ]
 }
 ```
+
 ## rClone Configuration
 
 This project includes a default rClone WebDAV remote named **Internxt**, which is configured to connect to the local Internxt CLI. This setup enables seamless file management within the Internxt service.

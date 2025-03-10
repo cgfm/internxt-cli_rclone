@@ -29,15 +29,9 @@ RUN apt-get update && \
 # Install the Internxt CLI
 RUN npm install -g @internxt/cli
 
-
 # Create directories for the rclone configuration and SSL certs
-RUN mkdir -p /config/log /config/internxt/certs && \
+RUN mkdir -p /config/log/internxt /config/internxt/certs /root/.internxt-cli /data && \
     touch /config/log/rclone.log
-    
-# Move Internxt data folder to /config/internxt and create a symlink
-RUN mv /root/.internxt-cli/* /config/internxt && \
-    rm -r /root/.internxt-cli && \
-    ln -s /config/internxt /root/.internxt-cli
 
 # Set the timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone

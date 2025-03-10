@@ -2,6 +2,28 @@
 
 set -e  # Exit immediately if a command exits with a non-zero status
 
+# Check if the initialization has been done
+if [ ! -f /data/init_done ]; then
+    echo "First run: copying contents from /root/.internxt-cli to /data..."
+
+    # Copy contents from /root/.internxt-cli to /data
+    cp /root/.internxt-cli/config.webdav.inxt /data/
+    cp /root/.internxt-cli/internxt-cli-drive.sqlite /data/
+    cp -r /root/.internxt-cli/logs /config/log/internxt
+    
+    # Create the init_done file to mark that initialization is complete
+    touch /data/init_done
+else
+    if [ "$DEBUG" = "true" ]; then
+        echo "Initialization already done. Skipping copy from /root/.internxt-cli to /data."
+    fi
+fi
+# Create a symbolic link for /root/.internxt-cli to /data
+ln -s /config/log/internxt /root/.internxt-cli/logs
+ln -s /data/config.webdav.inxt /root/.internxt-cli/config.webdav.inxt
+ln -s /data/internxt-cli-drive.sqlite /root/.internxt-cli/internxt-cli-drive.sqlite
+ln -s /data/certs /root/.internxt-cli/certs
+
 # Check if STOPATSTART mode is enabled
 if [ "$STOPATSTART" = "true" ]; then
     echo "STOPATSTART mode is enabled."
