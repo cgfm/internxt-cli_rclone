@@ -252,6 +252,15 @@ fi
 WORKING_JSON="/working/rclone_cron.json"
 mkdir -p /working  # Create the working directory
 
+# Set default values for CRON_COMMAND and CRON_COMMAND_FLAGS if not provided
+if [ -z "$CRON_COMMAND" ]; then
+    CRON_COMMAND="rclone copy"  # Default command
+fi
+
+if [ -z "$CRON_COMMAND_FLAGS" ]; then
+    CRON_COMMAND_FLAGS="--create-empty-src-dirs --retries 5 --verbose"  # Default flags
+fi
+
 # If no RCLONE_CRON_CONF is provided, check for the default location
 if [ -z "$RCLONE_CRON_CONF" ] && [ -f "/config/rclone_cron.json" ]; then
     RCLONE_CRON_CONF="/config/rclone_cron.json"
