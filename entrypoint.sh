@@ -11,6 +11,9 @@ if [ ! -f /data/init_done ]; then
     rm -r /root/.internxt-cli
     mv /data/logs /config/log/internxt
     
+    # Create a symbolic link for /root/.internxt-cli to /data
+    ln -s /config/log/internxt /data/logs
+    
     # Create the init_done file to mark that initialization is complete
     touch /data/init_done
 else
@@ -19,8 +22,8 @@ else
     fi
 fi
 # Create a symbolic link for /root/.internxt-cli to /data
-ln -s /config/log/internxt /data/logs
 ln -s /data /root/.internxt-cli
+
 
 # Check if STOPATSTART mode is enabled
 if [ "$STOPATSTART" = "true" ]; then
