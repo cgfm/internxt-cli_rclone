@@ -38,14 +38,14 @@ if [ -f "$WORKING_JSON" ]; then
         local_path=$(echo "$command_obj" | jq -r '.local_path // empty')
         remote_path=$(echo "$command_obj" | jq -r '.remote_path // empty')
 
-        echo "$command_obj"
-
         # If local path and remote path are set, include them
         if [[ -n "$local_path" && -n "$remote_path" ]]; then
+            echo "$(date -u +"%Y-%m-%d %H:%M:%S"): Running command: $command $local_path $remote_path $command_flags"
             echo "$(date -u +"%Y-%m-%d %H:%M:%S"): Running command: $command $local_path $remote_path $command_flags" >> "$LOG_DIR/rclone.log"
             eval "$command $local_path $remote_path $command_flags --log-file=$LOG_DIR/rclone.log --log-format=date,time,UTC"
         elif [[ -n "$command" ]]; then
             # If only command is present, run it with flags
+            echo "$(date -u +"%Y-%m-%d %H:%M:%S"): Running command: $command $command_flags"
             echo "$(date -u +"%Y-%m-%d %H:%M:%S"): Running command: $command $command_flags" >> "$LOG_DIR/rclone.log"
             eval "$command $command_flags"
         fi
