@@ -18,16 +18,8 @@ ENV RCLONE_SSL_CERT=""
 ENV RCLONE_SSL_KEY=""
 ENV RCLONE_WEB_GUI_PORT=5572
 
-# Install required packages including Node.js and npm
-#RUN apt-get update && \
-#    apt-get install -y curl gnupg2 tzdata jq rclone cron && \
-#    curl -fsSL https://deb.nodesource.com/setup_23.x | bash - && \
-#    apt-get install -y nodejs && \
-#    apt-get clean && \
-#    rm -rf /var/lib/apt/lists/*
-
 RUN apt-get update && \
-    apt-get install -y curl gnupg2 tzdata jq unzip cron && \
+    apt-get install -y curl gnupg2 tzdata jq gzip unzip cron && \
     curl -fsSL https://deb.nodesource.com/setup_23.x | bash - && \
     apt-get install -y nodejs && \
     apt-get clean && \
@@ -37,6 +29,7 @@ RUN curl https://rclone.org/install.sh | bash
 
 # Install the Internxt CLI
 RUN npm install -g @internxt/cli
+RUN npm update -g axios
 
 # Create directories for the rclone configuration and SSL certs
 RUN mkdir -p /config/log/internxt /config/internxt/certs /root/.internxt-cli /data && \

@@ -19,20 +19,21 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
    
     # Determine whether to use HTTP or HTTPS for rclone Web GUI
     if [ -n "$RCLONE_WEB_GUI_SSL_CERT" ] && [ -n "$RCLONE_WEB_GUI_SSL_KEY" ]; then
-        WEB_GUI_URL="https://localhost:$RCLONE_WEB_GUI_PORT"
+        WEB_GUI_URL="https://0.0.0.0:$RCLONE_WEB_GUI_PORT"
     else
-        WEB_GUI_URL="http://localhost:$RCLONE_WEB_GUI_PORT"
+        WEB_GUI_URL="http://0.0.0.0:$RCLONE_WEB_GUI_PORT"
     fi
 
     # Check if the rclone Web GUI is running and accessible if both user and pass are set check with credentials 
     if [ -n "$RCLONE_WEB_GUI_USER" ] && [ -n "$RCLONE_WEB_GUI_PASS" ]; then
-        if ! curl --connect-timeout 5 -s --head --user "$RCLONE_GUI_USER:$RCLONE_GUI_PASS" "$WEB_GUI_URL" | grep -q "200 OK"; then
-            error_exit "rclone Web GUI is not accessible."
-        fi
+        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" --insecure --connect-timeout 5 --head --user "$RCLONE_WEB_GUI_USER:$RCLONE_WEB_GUI_PASS" "$WEB_GUI_URL")
     else
-        if ! curl --connect-timeout 5 -s --head "$WEB_GUI_URL" | grep -q "200 OK"; then
-            error_exit "rclone Web GUI is not accessible."
-        fi
+        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" --insecure --connect-timeout 5 --head "$WEB_GUI_URL")
+    fi
+
+    # Check the response code
+    if [ "$RESPONSE" -ne 200 ]; then
+        error_exit "rclone Web GUI is not accessible. Response: $RESPONSE"
     fi
 fi
 
