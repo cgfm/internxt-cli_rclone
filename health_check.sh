@@ -37,7 +37,7 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
     fi
 fi
 
-WORKING_JSON="/working/rclone_cron.json"
+WORKING_JSON="/working/config.json"
 
 # Check if the WORKING_JSON file exists
 if [ ! -f "$WORKING_JSON" ]; then

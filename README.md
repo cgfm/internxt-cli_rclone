@@ -5,45 +5,41 @@ This repository contains a Docker setup to run the Internxt CLI with rclone supp
 ## Development ##
 This is still in development and not ready for production use.
 
-### Known issues ###
-The rClone web gui isn't reachable and if `RCLONE_WEB_GUI_SERVE` is true the health check will fail.
-
 ## Environment Variables
 
 The following environment variables can be set when running the Docker container. You can define up to 20 pairs of remote and local paths. Note that for each local path, a corresponding remote path is necessary.
 
-| Environment Variable                                    | Description                                                                                                                                        |
-|---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| `INTERNXT_EMAIL`                                        | Email address for Internxt login.  ![Static Badge](https://img.shields.io/badge/mandatory-red)                                                     | 
-| `INTERNXT_PASSWORD`                                     | Password for Internxt login.  ![Static Badge](https://img.shields.io/badge/mandatory-red)                                                          |
-| `INTERNXT_HTTPS`                                        | Set to `true` to enable HTTPS for WebDAV. Default is `false`.                                                                                      |
-| `INTERNXT_SSL_CERT`                                     | Path to the SSL certificate for HTTPS (if enabled).                                                                                                |
-| `INTERNXT_SSL_KEY`                                      | Path to the SSL key for HTTPS (if enabled).                                                                                                        |
-| `INTERNXT_TOTP`                                         | TOTP secret for two-factor authentication (optional).                                                                                              |
-| `INTERNXT_HOST`                                         | The host of the Internxt WebDAV to connect to (optional). Default is 0.0.0.0                                                                       |
-| `INTERNXT_WEB_PORT`                                     | Port for Internxt WebDAV service. Default is `3005`.                                                                                               |
-| `RCLONE_CONFIG`                                         | Path to the rclone configuration file. Default is `/config/rclone.conf`.                                                                           |
-| `RCLONE_WEB_GUI_SERVE`                                  | Set to false to disable the rClone Web GUI. Default is `true`.                                                                                     |
-| `RCLONE_WEB_GUI_PORT`                                   | Port for rclone Web GUI. Default is `5572`.                                                                                                        |
-| `RCLONE_WEB_GUI_USER`                                   | Username for the rclone Web GUI (optional). If not user and pass are set it won't be used.                                                         |
-| `RCLONE_WEB_GUI_PASS`                                   | Password for the rclone Web GUI (optional). If not user and pass are set it won't be used.                                                         |
-| `RCLONE_WEB_GUI_SSL_CERT`                               | Path to the SSL certificate for HTTPS (if enabled).                                                                                                |
-| `RCLONE_WEB_GUI_SSL_KEY`                                | Path to the SSL key for HTTPS (if enabled).                                                                                                        |
-| `RCLONE_WEB_GUI_EXTRA_PARAMS`                           | Additional parameters for rclone Web GUI (optional). Default is an empty string.                                                                   |
-| `RCLONE_CRON_CONF`                                       | Path to the JSON configuration file for cron jobs. Default is `/config/rclone_cron.json`. If this file does not exist, it will be ignored. Details are explained at [Building and Executing Cron Commands](#custom-cron-command)        |
-
-| `CRON_COMMAND`                                          | Default cron command to be executed by cron (optional). Can be overwritten by the `CRON_COMMAND_*` variables. Default is `rclone copy`. The command will be run with each pair of local and remote paths.<br>If remote files should be deleted if the don't exists locally anymore set this to `rclone sync`. **WARNING:** This will delete files on the remote if they are not present locally. **This could cause data loss!**  |
-| `CRON_COMMAND_FLAGS`                                    | The Flags appended to the command above  (optional). Can be overwritten by the `CRON_COMMAND_FLAGS_*` variables. Default is ` --create-empty-src-dirs --retries 5 --verbose`. The command will be run with each pair of local and remote paths. |
-| `CRON_SCHEDULE`                                         | Cron schedule for running the specified command. Can be overwritten by the `CRON_SCHEDULE_*` variables. Default is */15 * * * *.                                    |
-| `LOCAL_PATH_1` to `LOCAL_PATH_20`                       | Up to 20 local paths where files will be synchronized. Each local path must have a corresponding remote path.                                      |
-| `REMOTE_PATH_1` to `REMOTE_PATH_20`                     | Up to 20 remote paths for synchronization with the Internxt service.                                                                               |
-| `CRON_COMMAND_1` to `CRON_COMMAND_20`                   | Up to 20 custom commands can be set. Details are explained at [Building and Executing Cron Commands](#custom-cron-command).                        |
-| `CRON_COMMAND_FLAGS_1` to `CRON_COMMAND_FLAGS_20`                   | Up to 20 flags for the associated custom command can be set. Details are explained at [JSON Configuration](#json-configuration).                        |
-| `CRON_SCHEDULE_1` to `CRON_SCHEDULE_20`                   | Up to 20 schedules for the associated custom command and/or the associated local and remote path can be set. Details are explained at [Building and Executing Cron Commands](#custom-cron-command).                        |
-| `ROOT_CA`                                               | If the path to a root ca is set it will be appended to the ca-certificates.crt file to avoid "Unknown CA" errors (optional).                       |
-| `TZ`                                                    | Timezone for the application. Default is `Etc/UTC`.                                                                                                |
-| `DEBUG`                                                 | If set to `true`, the container will run in debug mode. Default is `false`.                                                                        |
-| `STOPATSTART`                                           | If set to `true`, the container will stop after the initial synchronization. Default is `false`.                                                   |
+| Environment Variable                | JSON Key                      | Description                                                                                                                                        |
+|-------------------------------------|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `CONFIG_FILE`                       |                               | Path to the JSON configuration file for cron jobs. Default is `/config/rclone_cron.json`. If this file does not exist, it will be ignored. Details for creating this file is explained at [JSON Configuration](#json-configuration)        |
+| `INTERNXT_EMAIL`                    |  `internxt.email`             | Email address for Internxt login.  ![Static Badge](https://img.shields.io/badge/mandatory-red) if not set in config file.                                                      | 
+| `INTERNXT_PASSWORD`                 |  `internxt.password`          | Password for Internxt login.  ![Static Badge](https://img.shields.io/badge/mandatory-red) if not set in config file.                                                          |
+| `INTERNXT_HTTPS`                    |  `internxt.https`             | Set to `true` to enable HTTPS for WebDAV. Default is `false`.                                                                                      |
+| `INTERNXT_SSL_CERT`                 |  `internxt.ssl_cert`          | Path to the SSL certificate for HTTPS (if enabled).                                                                                                |
+| `INTERNXT_SSL_KEY`                  |  `internxt.ssl_key`           | Path to the SSL key for HTTPS (if enabled).                                                                                                        |
+| `INTERNXT_TOTP`                     |  `internxt.totp`              | TOTP secret for two-factor authentication (optional).                                                                                              |
+| `INTERNXT_HOST`                     |  `internxt.host`              | The host of the Internxt WebDAV to connect to (optional). Default is 0.0.0.0                                                                       |
+| `INTERNXT_WEB_PORT`                 |  `internxt.web_port`          | Port for Internxt WebDAV service. Default is `3005`.                                                                                               |
+| `RCLONE_CONFIG`                     |  `rclone.config`              | Path to the rclone configuration file. Default is `/config/rclone.conf`.                                                                           |
+| `RCLONE_WEB_GUI_SERVE`              |  `rclone.webgui_serve`        | Set to false to disable the rClone Web GUI. Default is `true`.                                                                                     |
+| `RCLONE_WEB_GUI_PORT`               |  `rclone.webgui_port`         | Port for rclone Web GUI. Default is `5572`.                                                                                                        |
+| `RCLONE_WEB_GUI_USER`               |  `rclone.webgui_user`         | Username for the rclone Web GUI (optional). If not user and pass are set it won't be used.                                                         |
+| `RCLONE_WEB_GUI_PASS`               |  `rclone.webgui_pass`         | Password for the rclone Web GUI (optional). If not user and pass are set it won't be used.                                                         |
+| `RCLONE_WEB_GUI_SSL_CERT`           |  `rclone.webgui_ssl_cert`     | Path to the SSL certificate for HTTPS (if enabled).                                                                                                |
+| `RCLONE_WEB_GUI_SSL_KEY`            |  `rclone.webgui_ssl_key`      | Path to the SSL key for HTTPS (if enabled).                                                                                                        |
+| `RCLONE_WEB_GUI_EXTRA_PARAMS`       |  `rclone.webgui_extra_params` | Additional parameters for rclone Web GUI (optional). Default is an empty string.                                                                   |
+| `CRON_COMMAND`                      |  `cron.command`               | Default cron command to be executed by cron (optional). Can be overwritten by the `CRON_COMMAND_*` variables. Default is `rclone copy`. The command will be run with each pair of local and remote paths.<br>If remote files should be deleted if the don't exists locally anymore set this to `rclone sync`. **WARNING:** This will delete files on the remote if they are not present locally. **This could cause data loss!**  |
+| `CRON_COMMAND_FLAGS`                |  `cron.command_flags`         | The Flags appended to the command above  (optional). Can be overwritten by the `CRON_COMMAND_FLAGS_*` variables. Default is ` --create-empty-src-dirs --retries 5 --verbose`. The command will be run with each pair of local and remote paths. |
+| `CRON_SCHEDULE`                     |  `cron.schedule`              | Cron schedule for running the specified command. Can be overwritten by the `CRON_SCHEDULE_*` variables. Default is */15 * * * *.                                    |
+| `LOCAL_PATH_1` to `LOCAL_PATH_20`   |                               | Up to 20 local paths where files will be synchronized. Each local path must have a corresponding remote path.                                      |
+| `REMOTE_PATH_1` to `REMOTE_PATH_20` |                               | Up to 20 remote paths for synchronization with the Internxt service.                                                                               |
+| `CRON_COMMAND_1` to `CRON_COMMAND_20` |                               | Up to 20 custom commands can be set. Details are explained at [Building and Executing Cron Commands](#custom-cron-command).                        |
+| `CRON_COMMAND_FLAGS_1` to `CRON_COMMAND_FLAGS_20`  |                               | Up to 20 flags for the associated custom command can be set. Details are explained at [JSON Configuration](#json-configuration).                        |
+| `CRON_SCHEDULE_1` to `CRON_SCHEDULE_20` |                               | Up to 20 schedules for the associated custom command and/or the associated local and remote path can be set. Details are explained at [Building and Executing Cron Commands](#custom-cron-command).                        |
+| `ROOT_CA`                           |  `root_ca`                    | If the path to a root ca is set it will be appended to the ca-certificates.crt file to avoid "Unknown CA" errors (optional).                       |
+| `TZ`                                |  `timezone`                   | Timezone for the application. Default is `Etc/UTC`.                                                                                                |
+| `DEBUG`                             |                               | If set to `true`, the container will run in debug mode. Default is `false`.                                                                        |
+| `STOPATSTART`                       |                               | If set to `true`, the container will stop after the initial synchronization. Default is `false`.                                                   |
 
 ## Docker Image
 
@@ -189,11 +185,41 @@ command 5
 
 ## JSON Configuration
 
-The cron jobs and commands you define are stored at runtime in a JSON file located at `/working/rclone_cron.json`. You can provide your own JSON file to customize the cron jobs and commands by setting the `RCLONE_CRON_CONF` environment variable to the path of your JSON file or by simply storing your JSON file at `/config/rclone_cron.json`. The structure of this JSON file allows for dynamic command execution based on the defined environment variables and the `RCLONE_CRON_CONF` file. You can Use the ENV Vars and the JSON file both at the same time. they will be combined in the `/working/rclone_cron.json` file.
+### Cron jobs
+The cron jobs and commands you define are stored at runtime in a JSON file located at `/working/rclone_cron.json`. You can provide your own JSON file to customize the cron jobs and commands by setting the `CONFIG_FILE` environment variable to the path of your JSON file or by simply storing your JSON file at `/config/rclone_cron.json`. The structure of this JSON file allows for dynamic command execution based on the defined environment variables and the `CONFIG_FILE` file. You can Use the ENV Vars and the JSON file both at the same time. they will be combined in the `/working/rclone_cron.json` file. More about the cron jobs and commands in the [Building and Executing Cron Commands](#custom-cron-command) section.
 
 - **cron_jobs**: This is an array containing objects for each scheduled job. Each object need to have:
   - **schedule**: The cron schedule for the job.
   - **commands**: An array of command objects to execute at the specified schedule.
+
+### Settings
+All settings listed in the ENV Vars section can be set in the JSON file as well. If an ENV Var is set, it will override the value in the JSON file. If an ENV Var is not set, the value in the JSON file will be used. If the key is not present in the JSON file, the default value will be used.
+
+- **settings**: This object contains configuration settings that are loaded from environment variables. It is structured as follows:
+  - **internxt**: Contains settings related to the Internxt service.
+    - **email**: The email address for Internxt login.
+    - **password**: The password for Internxt login.
+    - **https**: Specifies whether to use HTTPS (true/false).
+    - **ssl_cert**: The path to the SSL certificate for HTTPS (if enabled).
+    - **ssl_key**: The path to the SSL key for HTTPS (if enabled).
+    - **totp**: TOTP secret for two-factor authentication (optional).
+    - **host**: The host of the Internxt WebDAV to connect to.
+    - **web_port**: The port for Internxt WebDAV service.
+  - **rclone**: Contains settings related to rclone.
+    - **config**: The path to the rclone configuration file.
+    - **webgui_serve**: Specifies whether to serve the rclone Web GUI (true/false).
+    - **webgui_port**: Port for rclone Web GUI.
+    - **webgui_user**: Username for the rclone Web GUI (optional).
+    - **webgui_pass**: Password for the rclone Web GUI (optional).
+    - **webgui_ssl_cert**: Path to the SSL certificate for rclone Web GUI (if enabled).
+    - **webgui_ssl_key**: Path to the SSL key for rclone Web GUI (if enabled).
+    - **webgui_extra_params**: Additional parameters for rclone Web GUI (optional).
+  - **cron**: Contains default command settings for cron jobs.
+    - **command**: Default cron command to be executed (e.g., "rclone copy").
+    - **command_flags**: Flags appended to the command (optional).
+    - **schedule**: Default cron schedule for running the specified command.
+  - **root_ca**: If the path to a root CA is set, it will be appended to the `ca-certificates.crt` file to avoid "Unknown CA" errors (optional).
+  - **timezone**: Timezone for the application.
 
 ### Example JSON Structure
 
@@ -231,7 +257,16 @@ The cron jobs and commands you define are stored at runtime in a JSON file locat
         }
       ]
     }
-  ]
+  ],
+  "settings": {
+    "internxt": {
+      "email": "your_email@example.com",
+      "password": "your_password"
+    },
+    "rclone": {
+      "config": "/config/rclone.conf"
+    }
+  }
 }
 ```
 

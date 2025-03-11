@@ -32,6 +32,64 @@ if [ "$STOPATSTART" = "true" ]; then
     tail -f /dev/null  # Keep the script running indefinitely
 fi
 
+# If no CONFIG_FILE is provided, check for the default location
+if [ -z "$CONFIG_FILE" ] && [ -f "/config/config.json" ]; then
+    CONFIG_FILE="/config/config.json"
+fi
+
+# Define expected environment variables and their corresponding JSON keys
+declare -A env_var_map=(
+    ["INTERNXT_EMAIL"]="internxt.email"
+    ["INTERNXT_PASSWORD"]="internxt.password"
+    ["INTERNXT_HTTPS"]="internxt.https"
+    ["INTERNXT_SSL_CERT"]="internxt.ssl_cert"
+    ["INTERNXT_SSL_KEY"]="internxt.ssl_key"
+    ["INTERNXT_TOTP"]="internxt.totp"
+    ["INTERNXT_HOST"]="internxt.host"
+    ["INTERNXT_WEB_PORT"]="internxt.web_port"
+    ["RCLONE_CONFIG"]="rclone.config"
+    ["RCLONE_WEB_GUI_SERVE"]="rclone.webgui_serve"
+    ["RCLONE_WEB_GUI_PORT"]="rclone.webgui_port"
+    ["RCLONE_WEB_GUI_USER"]="rclone.webgui_user"
+    ["RCLONE_WEB_GUI_PASS"]="rclone.webgui_pass"
+    ["RCLONE_WEB_GUI_SSL_CERT"]="rclone.webgui_ssl_cert"
+    ["RCLONE_WEB_GUI_SSL_KEY"]="rclone.webgui_ssl_key"
+    ["RCLONE_WEB_GUI_EXTRA_PARAMS"]="rclone.webgui_extra_params"
+    ["CRON_COMMAND"]="cron.command"
+    ["CRON_COMMAND_FLAGS"]="cron.command_flags"
+    ["CRON_SCHEDULE"]="cron.schedule"
+    ["ROOT_CA"]="root_ca"
+    ["TZ"]="timezone"
+)
+
+# Load the JSON file to check if the keys are defined
+if [ -f "$CONFIG_FILE" ]; then
+    # Iterate over the environment variable map
+    for env_var in "${!env_var_map[@]}"; do
+        json_key=${env_var_map[$env_var]}
+        
+        # Check if the JSON key exists in the CONFIG_FILE
+        if jq -e ".settings | has(\"${json_key#*.}\")" "$CONFIG_FILE" > /dev/null; then
+            # If the environment variable is not set, set it from the JSON value
+            if [ -z "${!env_var}" ]; then
+                value=$(jq -r ".settings.${json_key#*.}" "$CONFIG_FILE")
+                
+                # Check if the value is not empty before exporting
+                if [ -n "$value" ]; then
+                    export "$env_var=$value"
+                    if [ "$DEBUG" = "true" ]; then
+                        echo "Set environment variable: $env_var with value: $value"
+                    fi
+                else
+                    if [ "$DEBUG" = "true" ]; then
+                        echo "Value for $json_key is empty; not setting variable."
+                    fi
+                fi
+            fi
+        fi
+    done
+fi
+
 # Ensure required environment variables are set
 if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
     echo "Error: INTERNXT_EMAIL and INTERNXT_PASSWORD must be set."
@@ -276,24 +334,19 @@ if [ -z "$CRON_COMMAND_FLAGS" ]; then
     CRON_COMMAND_FLAGS="--create-empty-src-dirs --retries 5 --verbose"  # Default flags
 fi
 
-# If no RCLONE_CRON_CONF is provided, check for the default location
-if [ -z "$RCLONE_CRON_CONF" ] && [ -f "/config/rclone_cron.json" ]; then
-    RCLONE_CRON_CONF="/config/rclone_cron.json"
-fi
-
-# Create a working copy of the JSON configuration if RCLONE_CRON_CONF is set
-WORKING_JSON="/working/rclone_cron.json"
+# Create a working copy of the JSON configuration if CONFIG_FILE is set
+WORKING_JSON="/working/config.json"
 mkdir -p /working  # Create the working directory
 
 # Check if a configuration file is provided
-if [ -n "$RCLONE_CRON_CONF" ] && [ -f "$RCLONE_CRON_CONF" ]; then
+if [ -n "$CONFIG_FILE" ] && [ -f "$CONFIG_FILE" ]; then
     # Remove existing copy if it exists
     [ -f "$WORKING_JSON" ] && rm "$WORKING_JSON"
 
     # Create a copy of the given JSON configuration
-    cp "$RCLONE_CRON_CONF" "$WORKING_JSON"
+    cp "$CONFIG_FILE" "$WORKING_JSON"
     if [ "$DEBUG" = "true" ]; then
-        echo "Copied configuration from $RCLONE_CRON_CONF to $WORKING_JSON"
+        echo "Copied configuration from $CONFIG_FILE to $WORKING_JSON"
     fi
 else
     echo "Initialize with an empty JSON structure. No config file is provided"

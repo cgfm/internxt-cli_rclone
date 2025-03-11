@@ -16,7 +16,7 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-WORKING_JSON="/working/rclone_cron.json"
+WORKING_JSON="/working/config.json"
 schedule_index="$1"
 
 # Read the JSON file and execute commands for the specified schedule index
