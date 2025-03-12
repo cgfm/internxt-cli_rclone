@@ -25,7 +25,6 @@ fi
 [ -d "/root/.internxt-cli" ] &&  rm -r /root/.internxt-cli
 ln -s /data /root/.internxt-cli
 
-
 # Check if STOPATSTART mode is enabled
 if [ "$STOPATSTART" = "true" ]; then
     echo "STOPATSTART mode is enabled."
@@ -70,10 +69,18 @@ if [ -f "$CONFIG_FILE" ]; then
         
         # Check if the JSON key exists in the CONFIG_FILE
         if jq -e ".settings | has(\"${json_key#*.}\")" "$CONFIG_FILE" > /dev/null; then
+
+            if [ "$DEBUG" = "true" ]; then
+                echo "Searching for $json_key."
+            fi
+
             # If the environment variable is not set, set it from the JSON value
             if [ -z "${!env_var}" ]; then
                 value=$(jq -r ".settings.${json_key#*.}" "$CONFIG_FILE")
                 
+                if [ "$DEBUG" = "true" ]; then
+                    echo "$json_key with value '$value' found in $CONFIG_FILE."
+                fi
                 # Check if the value is not empty before exporting
                 if [ -n "$value" ]; then
                     export "$env_var=$value"
@@ -85,9 +92,17 @@ if [ -f "$CONFIG_FILE" ]; then
                         echo "Value for $json_key is empty; not setting variable."
                     fi
                 fi
+            else
+                if [ "$DEBUG" = "true" ]; then
+                    echo "$json_key not found in $CONFIG_FILE."
+                fi
             fi
         fi
     done
+else
+    if [ "$DEBUG" = "true" ]; then
+        echo "Config file not found at $CONFIG_FILE."
+    fi
 fi
 
 # Ensure required environment variables are set
