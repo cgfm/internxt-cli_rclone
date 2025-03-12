@@ -8,7 +8,7 @@ log_debug() {
     local message="$2"
 
     # Check if LOG_LEVEL is set to "debug" or higher
-    if [ "$LOG_LEVEL" = "fine" ]; then
+    if [ "$LOG_LEVEL" = "fine" ] && [ "$level" = "fine" ]; then
         echo "[FINE]: $message"
     elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ]) && [ "$level" = "debug" ]; then
         echo "[LOG_LEVEL]: $message"

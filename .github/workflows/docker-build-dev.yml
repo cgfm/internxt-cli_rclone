@@ -1,6 +1,7 @@
 name: Build and Push Docker Image
 
 on:
+  workflow_dispatch:  # Enable manual triggering of the workflow
   push:
     branches:
       - dev  # Set the source branch to 'main'
@@ -26,13 +27,36 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}  # Docker Hub username stored as a secret
           password: ${{ secrets.DOCKER_PASSWORD }}  # Docker Hub password stored as a secret
 
+      - name: Get current version from git tag
+        id: get_version
+        run: |
+          # Fetch all tags
+          git fetch --tags
+          # Get the latest tag
+          VERSION=$(git describe --tags --abbrev=0)
+          echo "Current version: $VERSION"
+
+          # Increment the last number of the version
+          IFS='.' read -ra ADDR <<< "$VERSION"
+          LAST_INDEX=$((${#ADDR[@]} - 1))
+          ADDR[$LAST_INDEX]=$((${ADDR[$LAST_INDEX]} + 1))
+          NEW_VERSION="${ADDR[*]}"
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Create new git tag
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git tag ${{ env.NEW_VERSION }}
+          git push origin ${{ env.NEW_VERSION }}
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
         with:
           context: .  # This points to the root of the repository where the Dockerfile is located
           file: ./Dockerfile  # Path to your Dockerfile
           push: true
-          tags: cgfm/internxt-cli_rclone:dev  # Change this to your Docker Hub repository name
+          tags: cgfm/internxt-cli_rclone:dev
 
       - name: Logout from Docker Hub
         run: docker logout
