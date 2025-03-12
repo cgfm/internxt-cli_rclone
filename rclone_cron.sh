@@ -5,19 +5,18 @@ set -e
 # Function to return debug messages based on the debug level
 log_debug() {
     local level="$1"
-    local message="$(date -u +"%Y-%m-%d %H:%M:%S"): $2"
+    local message="$2"
 
-    # Check if LOG_LEVEL is set to "debug" or higher
-    if [ "$LOG_LEVEL" = "fine" ]; then
-        message="[FINE]: $message"
-    elif { [ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] } && [ "$level" = "debug" ]; then
-        message="[LOG_LEVEL]: $message"
-    elif { [ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ] } && [ "$level" = "info" ]; then
-        message="[INFO]: $message"
-    elif { [ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ] || [ "$LOG_LEVEL" = "error" ] } && [ "$level" = "error" ]; then
-        message="[ERROR]: $message"
+    # Check if LOG_LEVEL
+    if [ "$LOG_LEVEL" = "fine" ] && [ "$level" = "fine" ]; then
+        echo "[FINE]: $message"
+    elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ]) && [ "$level" = "debug" ]; then
+        echo "[DEBUG]: $message"
+    elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ])  && [ "$level" = "info" ]; then
+        echo "[INFO]: $message"
+    elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ] || [ "$LOG_LEVEL" = "error" ]) && [ "$level" = "error" ]; then
+        echo "[ERROR]: $message"
     fi
-    echo "$message" | tee -a "$output_file"
 }
 
 # Log directory
