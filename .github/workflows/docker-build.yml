@@ -57,8 +57,8 @@ jobs:
           file: ./Dockerfile  # Path to your Dockerfile
           push: true
           tags: |
-            cgfm/internxt-cli_rclone:${{ env.NEW_VERSION }}  # Use the version number from the previous step
-            cgfm/internxt-cli_rclone:latest  # Optional latest tag
+            cgfm/internxt-cli_rclone:${{ env.NEW_VERSION }}
+            cgfm/internxt-cli_rclone:latest
 
       - name: Logout from Docker Hub
         run: docker logout
