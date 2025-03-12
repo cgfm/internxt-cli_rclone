@@ -130,27 +130,28 @@ if [ -f "$CONFIG_FILE" ]; then
         
         # Check if the JSON key exists in the CONFIG_FILE
         if jq -e ".settings | .${json_key} != null" "$CONFIG_FILE" > /dev/null; then
-            log_debug "debug" "Searching for $json_key."
+            log_debug "fine" "Searching for $json_key."
 
             # If the environment variable is not set, set it from the JSON value
             if [ -z "${!env_var}" ]; then
                 value=$(jq -r ".settings.${json_key}" "$CONFIG_FILE")
                 
-                log_debug "debug" "$json_key with value '$value' found in $CONFIG_FILE."
+                log_debug "fine" "$json_key with value '$value' found in $CONFIG_FILE."
                 # Check if the value is not empty before exporting
                 if [ -n "$value" ]; then
                     export "$env_var=$value"
                     log_debug "debug" "Set environment variable: $env_var with value: $value"
                 else
-                    log_debug "debug" "Value for $json_key is empty; not setting variable."
+                    log_debug "fine" "Value for $json_key is empty; not setting variable."
                 fi
             else
                 log_debug "debug" "$env_var already set. Ignoring $json_key."
             fi
         else
-            log_debug "debug" "$json_key not found in $CONFIG_FILE."
+            log_debug "fine" "$json_key not found in $CONFIG_FILE."
         fi
     done
+    log_debug "info" "Config file \"$CONFIG_FILE\" processed."
 else
     log_debug "debug" "Config file not found at $CONFIG_FILE."
 fi
@@ -225,14 +226,14 @@ log_debug "debug" "Using protocol: $PROTOCOL"
 
 
 # Configure rclone to use the Internxt WebDAV server
-log_debug "info" "Configuring rclone internxt webdav remote with $PROTOCOL..."
+log_debug "debug" "Configuring rclone internxt webdav remote with $PROTOCOL..."
 if rclone config create Internxt webdav \
     url "${PROTOCOL}://${INTERNXT_HOST:-0.0.0.0}:$INTERNXT_WEB_PORT/" \
     vendor "other" \
     user "$INTERNXT_EMAIL" \
     pass "$INTERNXT_PASSWORD" \
     --config "${RCLONE_CONFIG}" >/dev/null 2>&1; then
-    log_debug "info" "Successfully configured rclone internxt webdav remote."
+    log_debug "info" "Configured rclone internxt webdav remote."
     
     declare -a cont_rclone_config=($(< $RCLONE_CONFIG))
     log_debug "fine" "Rclone config:\n${cont_rclone_config[@]}"
@@ -302,7 +303,7 @@ else
     echo "{\"port\":\"$INTERNXT_WEB_PORT\",\"protocol\":\"http\"}" > "$WEBDAV_CONFIG_PATH"
 fi
 
-log_debug "debug" "WebDAV configuration written successfully."
+log_debug "fine" "WebDAV configuration written."
 
 # Enable WebDAV
 log_debug "info" "Enabling WebDAV..."
