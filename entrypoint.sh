@@ -462,7 +462,7 @@ tail_with_prefix() {
     local isJSON="$3"
 
     tail -f "$log_file" | while read -r line; do
-        if isJSON; then
+        if [ "$isJSON" = "true" ]; then
             # If the line is JSON, parse it and extract the desired fields
             timestamp=$(echo "$line" | jq -r '.timestamp')
             level=$(echo "$line" | jq -r '.level' | tr '[:lower:]' '[:upper:]')
