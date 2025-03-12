@@ -10,11 +10,11 @@ log_debug() {
     # Check if LOG_LEVEL is set to "debug" or higher
     if [ "$LOG_LEVEL" = "fine" ]; then
         echo "[FINE]: $message"
-    elif [ [ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] ] && [ "$level" = "debug" ]; then
+    elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ]) && [ "$level" = "debug" ]; then
         echo "[LOG_LEVEL]: $message"
-    elif [ [ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ] ]  && [ "$level" = "info" ]; then
+    elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ])  && [ "$level" = "info" ]; then
         echo "[INFO]: $message"
-    elif [ [ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ] || [ "$LOG_LEVEL" = "error" ] ] && [ "$level" = "error" ]; then
+    elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ] || [ "$LOG_LEVEL" = "error" ]) && [ "$level" = "error" ]; then
         echo "[ERROR]: $message"
     fi
 }
@@ -371,12 +371,10 @@ for i in {1..20}; do
         # Use user-defined command if provided
         cron_command="${!cron_command_var}"
         log_debug "fine" "Using user-defined command for index $i: $cron_command"
-        fi
     elif [ -n "$local_path" ] && [ -n "$remote_path" ]; then
         # Use default command only if both paths are set
         cron_command="$CRON_COMMAND"
         log_debug "fine" "Using default command for index $i: $cron_command"
-        fi
     else
         # Skip entry if no valid command can be determined
         log_debug "fine" "No valid command for index $i. Skipping."
