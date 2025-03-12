@@ -129,12 +129,12 @@ if [ -f "$CONFIG_FILE" ]; then
         json_key=${env_var_map[$env_var]}
         
         # Check if the JSON key exists in the CONFIG_FILE
-        if jq -e ".settings | .${json_key#*.} != null" "$CONFIG_FILE" > /dev/null; then
+        if jq -e ".settings | .${json_key} != null" "$CONFIG_FILE" > /dev/null; then
             log_debug "debug" "Searching for $json_key."
 
             # If the environment variable is not set, set it from the JSON value
             if [ -z "${!env_var}" ]; then
-                value=$(jq -r ".settings.${json_key#*.}" "$CONFIG_FILE")
+                value=$(jq -r ".settings.${json_key}" "$CONFIG_FILE")
                 
                 log_debug "debug" "$json_key with value '$value' found in $CONFIG_FILE."
                 # Check if the value is not empty before exporting
