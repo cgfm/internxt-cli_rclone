@@ -446,7 +446,7 @@ if [ -f "$WORKING_JSON" ]; then
         done
 
         /usr/bin/crontab /var/spool/cron/root  # Load the new crontab
-        OUTPUT=$(service cron start >2>&1)  # Start the cron service
+        OUTPUT=$(service cron start 2>&1)  # Start the cron service
         log_debug "fine" "$OUTPUT" 
         if ! pgrep cron > /dev/null; then
             log_debug "error" "Cron service is not running."
