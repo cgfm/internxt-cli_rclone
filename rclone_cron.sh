@@ -4,7 +4,6 @@ set -e
 
 # Function to return debug messages based on the debug level
 log_debug() {
-log_debug() {
     local level="$1"
     local message="$2"
 
