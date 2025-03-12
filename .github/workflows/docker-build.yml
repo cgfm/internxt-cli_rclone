@@ -7,11 +7,11 @@ on:
         description: 'New release version (optional)'
         required: false
   
-  push:
-    paths-ignore:
-      - README.md  # Ignore changes to README.md
-      - .git/**
-      - .github/**
+#  push:
+#    paths-ignore:
+#      - README.md  # Ignore changes to README.md
+#      - .git/**
+#      - .github/**
 
 jobs:
   build:
@@ -35,6 +35,7 @@ jobs:
         run: |
           # Get the branch name from the context
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          echo "Branch name is $BRANCH_NAME" 
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
   
       - name: Create Release
@@ -70,6 +71,3 @@ jobs:
             docker tag $IMAGE_TAG $NEW_IMAGE_TAG
             docker push $NEW_IMAGE_TAG
           fi
-
-      - name: Logout from Docker Hub
-        run: docker logout
