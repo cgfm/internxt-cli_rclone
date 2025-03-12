@@ -57,6 +57,7 @@ jobs:
           else
             echo "No tags found in the repository."
             exit 1  # Exit the workflow with an error code
+          fi
 
       - name: Create new git tag
         run: |
