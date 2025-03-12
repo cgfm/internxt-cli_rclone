@@ -10,8 +10,8 @@ log_debug() {
     # Check if LOG_LEVEL is set to "debug" or higher
     if [ "$LOG_LEVEL" = "fine" ]; then
         message="[FINE]: $message"
-    elif { [ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] } && [ "$level" = "debug" ] ; then
-        message="[LOG_LEVEL]: $message"
+    elif { [ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] } && [ "$level" = "debug" ]; then
+        message="[DEBUG]: $message"
     elif { [ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ] } && [ "$level" = "info" ]; then
         message="[INFO]: $message"
     elif { [ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ] || [ "$LOG_LEVEL" = "error" ] } && [ "$level" = "error" ]; then
