@@ -35,7 +35,11 @@ jobs:
       
           # Get the current branch name
           CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-      
+          if [ "$CURRENT_BRANCH" = "main" ]; then
+            CURRENT_BRANCH="latest"
+          fi
+          echo "CURRENT_BRANCH=$CURRENT_BRANCH" >> $GITHUB_ENV
+          
           # Check for existing tags
           if git tag | grep -q .; then
             # Get the latest tag on the current branch
@@ -74,7 +78,7 @@ jobs:
           push: true
           tags: |
             cgfm/internxt-cli_rclone:${{ env.NEW_VERSION }}
-            cgfm/internxt-cli_rclone:latest
+            cgfm/internxt-cli_rclone:${{ env.CURRENT_BRANCH }}
 
       - name: Logout from Docker Hub
         run: docker logout
