@@ -41,16 +41,23 @@ jobs:
       - name: Create Release
         id: create_release
         run: |
-          if [ "${{ github.event.inputs.new_version }}" == 'true' ]; then
+          SANITIZED_NEW_VERSION="${{ github.event.inputs.new_version }}"
+          SANITIZED_NEW_VERSION="${SANITIZED_NEW_VERSION// /_}"  # Replace spaces with underscores
+
+          if [ -n "$SANITIZED_NEW_VERSION" ]; then
             echo "Creating new release: ${{ github.event.inputs.new_version }}"
             echo "${{ secrets.GH_TOKEN }}" | gh auth login --with-token
-            gh release create ${{ github.event.inputs.new_version }} --title "Release  ${{ github.event.inputs.new_version }}" --notes "Release notes for version  ${{ github.event.inputs.new_version }}" --target $BRANCH_NAME
+            gh release create "SANITIZED_NEW_VERSION" --target "$BRANCH_NAME"
           else
             echo "Release creation skipped."
           fi
 
       - name: Build and Push Docker Image
         run: |
+          # Sanitize the new version by replacing spaces with underscores
+          SANITIZED_NEW_VERSION="${{ github.event.inputs.new_version }}"
+          SANITIZED_NEW_VERSION="${SANITIZED_NEW_VERSION// /_}"  # Replace spaces with underscores
+
           if [ "$BRANCH_NAME" == "main" ]; then
             IMAGE_TAG="cgfm/internxt-cli_rclone:latest"
           else
@@ -66,12 +73,12 @@ jobs:
           docker push $IMAGE_TAG
 
           # If new version is provided, tag with the new version as well
-          if [ -n "${{ github.event.inputs.new_version }}" ]; then
-            NEW_IMAGE_TAG="cgfm/internxt-cli_rclone:${{ github.event.inputs.new_version }}"
+          if [ -n "$SANITIZED_NEW_VERSION" ]; then
+            NEW_IMAGE_TAG="cgfm/internxt-cli_rclone:$SANITIZED_NEW_VERSION"
             echo "Tagging image with new version: $NEW_IMAGE_TAG"
             docker tag $IMAGE_TAG $NEW_IMAGE_TAG
             docker push $NEW_IMAGE_TAG
           fi
-          
+
       - name: Logout from Docker Hub
         run: docker logout
