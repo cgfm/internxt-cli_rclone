@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build and Push DEV Docker Image
 
 on:
   workflow_dispatch:  # Enable manual triggering of the workflow
@@ -32,16 +32,31 @@ jobs:
         run: |
           # Fetch all tags
           git fetch --tags
-          # Get the latest tag
-          VERSION=$(git describe --tags --abbrev=0)
-          echo "Current version: $VERSION"
-
-          # Increment the last number of the version
-          IFS='.' read -ra ADDR <<< "$VERSION"
-          LAST_INDEX=$((${#ADDR[@]} - 1))
-          ADDR[$LAST_INDEX]=$((${ADDR[$LAST_INDEX]} + 1))
-          NEW_VERSION="${ADDR[*]}"
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+      
+          # Get the current branch name
+          CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+      
+          # Check for existing tags
+          if git tag | grep -q .; then
+            # Get the latest tag on the current branch
+            VERSION=$(git tag --points-at HEAD | sort -V | tail -n 1)
+            
+            if [ -z "$VERSION" ]; then
+              echo "No tags found for the current commit in branch $CURRENT_BRANCH."
+              exit 1  # Exit the workflow with an error code
+            fi
+            
+            echo "Current version: $VERSION"
+            
+            # Increment the last number of the version
+            IFS='.' read -ra ADDR <<< "$VERSION"
+            LAST_INDEX=$((${#ADDR[@]} - 1))
+            ADDR[$LAST_INDEX]=$((${ADDR[$LAST_INDEX]} + 1))
+            NEW_VERSION="${ADDR[*]}"
+            echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          else
+            echo "No tags found in the repository."
+            exit 1  # Exit the workflow with an error code
 
       - name: Create new git tag
         run: |
