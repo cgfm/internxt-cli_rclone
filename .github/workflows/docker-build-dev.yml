@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # Enable manual triggering of the workflow
   push:
     branches:
-      - dev  # Set the source branch to 'main'
+      - dev  # Set the source branch to 'dev'
     paths-ignore:
       - README.md  # Ignore changes to README.md
       - .git/**
