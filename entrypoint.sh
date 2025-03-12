@@ -11,7 +11,7 @@ log_debug() {
     if [ "$LOG_LEVEL" = "fine" ] && [ "$level" = "fine" ]; then
         echo "[FINE]: $message"
     elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ]) && [ "$level" = "debug" ]; then
-        echo "[LOG_LEVEL]: $message"
+        echo "[DEBUG]: $message"
     elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ])  && [ "$level" = "info" ]; then
         echo "[INFO]: $message"
     elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ] || [ "$LOG_LEVEL" = "error" ]) && [ "$level" = "error" ]; then
@@ -488,18 +488,4 @@ tail_with_prefix() {
     done
 }
 
-# Start tailing multiple log files in parallel
-{
-    tail_with_prefix "/config/log/cron.log" "cron" false &  # Tail cron log
-    tail_with_prefix "/config/log/rclone.log" "rclone" false &  # Tail rclone log
-    tail_with_prefix "/config/log/internxt/internxt-cli-error.log" "internxt" true &  # Tail internxt error log
-    tail_with_prefix "/config/log/internxt/internxt-webdav-error.log" "internxt" true &  # Tail internxt webdav error log
-    if [ "$LOG_LEVEL" = "fine" ]; then
-        tail_with_prefix "/config/log/internxt/internxt-cli-combined.log" "internxt" true &  # Tail internxt combined log
-        tail_with_prefix "/config/log/internxt/internxt-webdav-combined.log" "internxt" true &  # Tail internxt webdav combined log
-    fi
-    wait  # Wait for all background processes to finish
-}
-
-# Wait indefinitely to keep the script running
-wait
+#
