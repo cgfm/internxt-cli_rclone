@@ -37,15 +37,16 @@ jobs:
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
           echo "Branch name is $BRANCH_NAME" 
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-  
+
       - name: Create Release
         id: create_release
         run: |
-          if [ -n "${{ github.event.inputs.new_version }}" ]; then
+          if [ "${{ github.event.inputs.new_version }}" == 'true' ]; then
             echo "Creating new release: ${{ github.event.inputs.new_version }}"
-            gh release create ${{ github.event.inputs.new_version }} --title "Release ${{ github.event.inputs.new_version }}" --notes "Release notes for version ${{ github.event.inputs.new_version }}" --target $BRANCH_NAME
+            echo "${{ secrets.GH_TOKEN }}" | gh auth login --with-token
+            gh release create ${{ github.event.inputs.new_version }} --title "Release  ${{ github.event.inputs.new_version }}" --notes "Release notes for version  ${{ github.event.inputs.new_version }}" --target $BRANCH_NAME
           else
-            echo "No new release version provided. Skipping release creation."
+            echo "Release creation skipped."
           fi
 
       - name: Build and Push Docker Image
@@ -71,3 +72,6 @@ jobs:
             docker tag $IMAGE_TAG $NEW_IMAGE_TAG
             docker push $NEW_IMAGE_TAG
           fi
+          
+      - name: Logout from Docker Hub
+        run: docker logout
