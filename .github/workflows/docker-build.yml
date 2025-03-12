@@ -47,7 +47,7 @@ jobs:
           if [ -n "$SANITIZED_NEW_VERSION" ]; then
             echo "Creating new release: ${{ github.event.inputs.new_version }}"
             echo "${{ secrets.GH_TOKEN }}" | gh auth login --with-token
-            gh release create "SANITIZED_NEW_VERSION" --target "$BRANCH_NAME"
+            gh release create "$SANITIZED_NEW_VERSION" --target "$BRANCH_NAME"
           else
             echo "Release creation skipped."
           fi
