@@ -3,21 +3,11 @@ name: Build and Push Docker Image
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: 'Branch to create the release from'
-        required: true
-        default: 'main'
-      new_release:
+      new_version:
         description: 'New release version (optional)'
         required: false
-      create_release:
-        description: 'Create a new release?'
-        required: true
-        default: 'false'  # Default to not create a release
   
   push:
-    branches:
-      - main  # Set the source branch to 'main'
     paths-ignore:
       - README.md  # Ignore changes to README.md
       - .git/**
@@ -40,66 +30,45 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}  # Docker Hub username stored as a secret
           password: ${{ secrets.DOCKER_PASSWORD }}  # Docker Hub password stored as a secret
 
-      - name: Get current version
-        id: get_version
+      - name: Set Branch Name
+        id: set_branch_name
         run: |
-          # Fetch all tags
-          git fetch --tags
-
-          # Check if user provided a new version
-          if [ -n "${{ github.event.inputs.new_version }}" ]; then
-            VERSION="${{ github.event.inputs.new_version }}"
-            echo "Using provided version: $VERSION"
-          else
-            # Get the latest tag on the specified branch
-            VERSION=$(git tag --points-at HEAD | sort -V | tail -n 1)
-
-            if [ -z "$VERSION" ]; then
-              echo "No tags found for the current commit in branch ${{ github.event.inputs.branch }}. Continuing without a version."
-              VERSION=""  # Set VERSION to an empty string to indicate no version found
-            else
-              echo "Latest version: $VERSION"
-
-              # Increment the last number of the version
-              IFS='.' read -ra ADDR <<< "$VERSION"
-              LAST_INDEX=$((${#ADDR[@]} - 1))
-              ADDR[$LAST_INDEX]=$((${ADDR[$LAST_INDEX]} + 1))
-              VERSION="${ADDR[*]}"
-              echo "New version will be: $VERSION"
-            fi
-          fi
-
-          echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Determine Docker Image Tag
-        id: docker_tag
-        run: |
-          if [ "${{ github.event.inputs.branch }}" == "main" ]; then
-            IMAGE_TAG="latest"
-          else
-            IMAGE_TAG="${{ github.event.inputs.branch }}"
-          fi
-          echo "DOCKER_IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-          echo "Docker image tag set to: $DOCKER_IMAGE_TAG"
-
+          # Get the branch name from the context
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+  
       - name: Create Release
         id: create_release
         run: |
           if [ -n "${{ github.event.inputs.new_version }}" ]; then
-            echo "Creating new release: ${{ env.RELEASE_VERSION }}"
-            gh release create ${{ env.RELEASE_VERSION }} --title "Release ${{ env.RELEASE_VERSION }}" --notes "Release notes for version ${{ env.RELEASE_VERSION }}" --target ${{ github.event.inputs.branch }}
+            echo "Creating new release: ${{ github.event.inputs.new_version }}"
+            gh release create ${{ github.event.inputs.new_version }} --title "Release ${{ github.event.inputs.new_version }}" --notes "Release notes for version ${{ github.event.inputs.new_version }}" --target $BRANCH_NAME
           else
             echo "No new release version provided. Skipping release creation."
           fi
 
       - name: Build and Push Docker Image
         run: |
-          if [ -n "$VERSION" ]; then
-            echo "Building Docker image with tag: $DOCKER_IMAGE_TAG"
-            docker build -t cgfm/internxt-cli_rclone:$DOCKER_IMAGE_TAG .
-            docker push cgfm/internxt-cli_rclone:$DOCKER_IMAGE_TAG
+          if [ "$BRANCH_NAME" == "main" ]; then
+            IMAGE_TAG="cgfm/internxt-cli_rclone:latest"
           else
-            echo "No version found. Skipping Docker image tagging."
+            IMAGE_TAG="cgfm/internxt-cli_rclone:$BRANCH_NAME"
+          fi
+          
+          echo "Building Docker image with tag: $IMAGE_TAG"
+
+          # Build the Docker image
+          docker build -t $IMAGE_TAG .
+
+          # Push the image with the main tag
+          docker push $IMAGE_TAG
+
+          # If new version is provided, tag with the new version as well
+          if [ -n "${{ github.event.inputs.new_version }}" ]; then
+            NEW_IMAGE_TAG="cgfm/internxt-cli_rclone:${{ github.event.inputs.new_version }}"
+            echo "Tagging image with new version: $NEW_IMAGE_TAG"
+            docker tag $IMAGE_TAG $NEW_IMAGE_TAG
+            docker push $NEW_IMAGE_TAG
           fi
 
       - name: Logout from Docker Hub
