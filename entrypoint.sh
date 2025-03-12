@@ -7,7 +7,7 @@ log_debug() {
     local level="$1"
     local message="$2"
 
-    # Check if LOG_LEVEL is set to "debug" or higher
+    # Check if LOG_LEVEL
     if [ "$LOG_LEVEL" = "fine" ] && [ "$level" = "fine" ]; then
         echo "[FINE]: $message"
     elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ]) && [ "$level" = "debug" ]; then
@@ -87,7 +87,6 @@ for log_file in "${LOCAL_LOG_FILES[@]}"; do
     fi
     touch "$log_file"
 done
-
 log_debug "debug" "Log files rotated. New log files created."
 
 # Define expected environment variables and their corresponding JSON keys
@@ -277,17 +276,18 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
     log_debug "debug" "Starting rclone with command:\n$rclone_command"
     eval "$rclone_command &"  # Execute the rclone command in the background
 fi
-
+OUTPUT=""
 # Handle TOTP for two-factor authentication
 if [ -n "$INTERNXT_TOTP" ]; then
     echo "Generating TOTP..."
     TOTP=$(totp "$INTERNXT_TOTP")  # Generate the TOTP
     log_debug "info" "Logging into Internxt with TOTP..."
-    internxt login --email="$INTERNXT_EMAIL" --password="$INTERNXT_PASSWORD" --twofactor="$TOTP" --non-interactive
+    OUTPUT=$(internxt login --email="$INTERNXT_EMAIL" --password="$INTERNXT_PASSWORD" --twofactor="$TOTP" --non-interactive 2>&1)
 else
     log_debug "info" "Logging into Internxt without TOTP..."
-    internxt login --email="$INTERNXT_EMAIL" --password="$INTERNXT_PASSWORD" --non-interactive
+    OUTPUT=$(internxt login --email="$INTERNXT_EMAIL" --password="$INTERNXT_PASSWORD" --non-interactive 2>&1)
 fi
+log_debug "fine" "$OUTPUT" 
 
 # Write the WebDAV configuration to the config file
 WEBDAV_CONFIG_PATH="/data/config.webdav.inxt"
@@ -306,7 +306,14 @@ log_debug "debug" "WebDAV configuration written successfully."
 
 # Enable WebDAV
 log_debug "info" "Enabling WebDAV..."
-internxt webdav enable
+OUTPUT=$(internxt webdav enable 2>&1)  # Capture the output of the command
+log_debug "fine" "$OUTPUT"  # Log the output at the 'fine' level
+
+# Verify if the WebDAV server is online
+if [[ "$OUTPUT" != *"online"* ]]; then
+    error_exit "Internxt WebDAV server is not running. Status: $WEBDAV_STATUS"
+    exit 1
+fi
 
 # Check if CRON_SCHEDULE is set, default to every 15 minutes if not
 if [ -z "$CRON_SCHEDULE" ]; then
@@ -439,8 +446,13 @@ if [ -f "$WORKING_JSON" ]; then
         done
 
         /usr/bin/crontab /var/spool/cron/root  # Load the new crontab
-        service cron start  # Start the cron service
-        log_debug "info" "Cron service started."
+        OUTPUT=$(service cron start >2>&1)  # Start the cron service
+        log_debug "fine" "$OUTPUT" 
+        if ! pgrep cron > /dev/null; then
+            log_debug "error" "Cron service is not running."
+        else
+            log_debug "info" "Cron service started."
+        fi
                 
         declare -a cont_cron_file=($(< /var/spool/cron/root))
         log_debug "fine" "Cron jobs created created:\n${cont_cron_file[@]%$'\r'}"
