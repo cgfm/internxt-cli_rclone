@@ -6,6 +6,57 @@ error_exit() {
     exit 1
 }
 
+# Define expected environment variables and their corresponding JSON keys
+declare -A env_var_map=(
+    ["INTERNXT_EMAIL"]="internxt.email"
+    ["INTERNXT_PASSWORD"]="internxt.password"
+    ["INTERNXT_HTTPS"]="internxt.https"
+    ["INTERNXT_SSL_CERT"]="internxt.ssl_cert"
+    ["INTERNXT_SSL_KEY"]="internxt.ssl_key"
+    ["INTERNXT_TOTP"]="internxt.totp"
+    ["INTERNXT_HOST"]="internxt.host"
+    ["INTERNXT_WEB_PORT"]="internxt.web_port"
+    ["RCLONE_CONFIG"]="rclone.config"
+    ["RCLONE_WEB_GUI_SERVE"]="rclone.webgui_serve"
+    ["RCLONE_WEB_GUI_PORT"]="rclone.webgui_port"
+    ["RCLONE_WEB_GUI_USER"]="rclone.webgui_user"
+    ["RCLONE_WEB_GUI_PASS"]="rclone.webgui_pass"
+    ["RCLONE_WEB_GUI_SSL_CERT"]="rclone.webgui_ssl_cert"
+    ["RCLONE_WEB_GUI_SSL_KEY"]="rclone.webgui_ssl_key"
+    ["RCLONE_WEB_GUI_EXTRA_PARAMS"]="rclone.webgui_extra_params"
+    ["CRON_COMMAND"]="cron.command"
+    ["CRON_COMMAND_FLAGS"]="cron.command_flags"
+    ["CRON_SCHEDULE"]="cron.schedule"
+    ["LOG_FILE_COUNT"]="log.file_count"
+    ["LOG_LEVEL"]="log.level"
+    ["ROOT_CA"]="root_ca"
+    ["TZ"]="timezone"
+)
+
+# If no CONFIG_FILE is provided, check for the default location
+if [ -z "$CONFIG_FILE" ] && [ -f "/config/config.json" ]; then
+    CONFIG_FILE="/config/config.json"
+fi
+
+# Load the JSON file to check if the keys are defined
+if [ -f "$CONFIG_FILE" ]; then
+    # Iterate over the environment variable map
+    for env_var in "${!env_var_map[@]}"; do
+        json_key=${env_var_map[$env_var]}
+        # Check if the JSON key exists in the CONFIG_FILE
+        if jq -e ".settings | .${json_key} != null" "$CONFIG_FILE" > /dev/null; then
+            # If the environment variable is not set, set it from the JSON value
+            if [ -z "${!env_var}" ]; then
+                value=$(jq -r ".settings.${json_key}" "$CONFIG_FILE")
+                # Check if the value is not empty before exporting
+                if [ -n "$value" ]; then
+                    export "$env_var=$value"
+                fi
+            fi
+        fi
+    done
+fi
+
 # Check the status of the Internxt WebDAV server
 WEBDAV_STATUS=$(internxt webdav status)
 
