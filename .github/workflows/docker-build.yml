@@ -44,7 +44,7 @@ jobs:
           if [ -z "${{ github.event.inputs.new_version }}" ]; then
             echo "Creating new release: ${{ github.event.inputs.new_version }}"
             echo "${{ secrets.GH_TOKEN }}" | gh auth login --with-token
-            gh release create ${{ github.event.inputs.new_version }} --title "Release  ${{ github.event.inputs.new_version }}" --notes "Release notes for version  ${{ github.event.inputs.new_version }}" --target "$BRANCH_NAME"
+            gh release create "${{ github.event.inputs.new_version }}" --target "$BRANCH_NAME"
           else
             echo "Release creation skipped."
           fi
