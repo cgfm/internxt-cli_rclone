@@ -41,10 +41,13 @@ jobs:
       - name: Create Release
         id: create_release
         run: |
-          if [ -z "${{ github.event.inputs.new_version }}" ]; then
+          SANITIZED_NEW_VERSION="${{ github.event.inputs.new_version }}"
+          SANITIZED_NEW_VERSION="${SANITIZED_NEW_VERSION// /_}"  # Replace spaces with underscores
+
+          if [ -n "$SANITIZED_NEW_VERSION" ]; then
             echo "Creating new release: ${{ github.event.inputs.new_version }}"
             echo "${{ secrets.GH_TOKEN }}" | gh auth login --with-token
-            gh release create "${{ github.event.inputs.new_version }}" --target "$BRANCH_NAME"
+            gh release create "SANITIZED_NEW_VERSION" --target "$BRANCH_NAME"
           else
             echo "Release creation skipped."
           fi
