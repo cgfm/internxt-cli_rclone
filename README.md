@@ -38,7 +38,8 @@ The following environment variables can be set when running the Docker container
 | `CRON_SCHEDULE_1` to `CRON_SCHEDULE_20` |                               | Up to 20 schedules for the associated custom command and/or the associated local and remote path can be set. Details are explained at [Building and Executing Cron Commands](#custom-cron-command).                        |
 | `ROOT_CA`                           |  `root_ca`                    | If the path to a root ca is set it will be appended to the ca-certificates.crt file to avoid "Unknown CA" errors (optional).                       |
 | `TZ`                                |  `timezone`                   | Timezone for the application. Default is `Etc/UTC`.                                                                                                |
-| `DEBUG`                             |                               | If set to `true`, the container will run in debug mode. Default is `false`.                                                                        |
+| `LOG_LEVEL`                         |  `log.level`                  | Set the log level for the application. Default is `info`. Possible values are `fine`, `debug`, `info` and `error`.<br>It's recommend to set the log level by env var. Otherwise the first log entrys will be logged with the default log level `info` until the JSON file is loaded.     |
+| `LOG_LOGFILE_COUNT`                  | `log.file_count`          | Set the number of log files to keep. Default is `3`. If its set to a negative value it will keep all log files.         |
 | `STOPATSTART`                       |                               | If set to `true`, the container will stop after the initial synchronization. Default is `false`.                                                   |
 
 ## Docker Image
@@ -195,31 +196,7 @@ The cron jobs and commands you define are stored at runtime in a JSON file locat
 ### Settings
 All settings listed in the ENV Vars section can be set in the JSON file as well. If an ENV Var is set, it will override the value in the JSON file. If an ENV Var is not set, the value in the JSON file will be used. If the key is not present in the JSON file, the default value will be used.
 
-- **settings**: This object contains configuration settings that are loaded from environment variables. It is structured as follows:
-  - **internxt**: Contains settings related to the Internxt service.
-    - **email**: The email address for Internxt login.
-    - **password**: The password for Internxt login.
-    - **https**: Specifies whether to use HTTPS (true/false).
-    - **ssl_cert**: The path to the SSL certificate for HTTPS (if enabled).
-    - **ssl_key**: The path to the SSL key for HTTPS (if enabled).
-    - **totp**: TOTP secret for two-factor authentication (optional).
-    - **host**: The host of the Internxt WebDAV to connect to.
-    - **web_port**: The port for Internxt WebDAV service.
-  - **rclone**: Contains settings related to rclone.
-    - **config**: The path to the rclone configuration file.
-    - **webgui_serve**: Specifies whether to serve the rclone Web GUI (true/false).
-    - **webgui_port**: Port for rclone Web GUI.
-    - **webgui_user**: Username for the rclone Web GUI (optional).
-    - **webgui_pass**: Password for the rclone Web GUI (optional).
-    - **webgui_ssl_cert**: Path to the SSL certificate for rclone Web GUI (if enabled).
-    - **webgui_ssl_key**: Path to the SSL key for rclone Web GUI (if enabled).
-    - **webgui_extra_params**: Additional parameters for rclone Web GUI (optional).
-  - **cron**: Contains default command settings for cron jobs.
-    - **command**: Default cron command to be executed (e.g., "rclone copy").
-    - **command_flags**: Flags appended to the command (optional).
-    - **schedule**: Default cron schedule for running the specified command.
-  - **root_ca**: If the path to a root CA is set, it will be appended to the `ca-certificates.crt` file to avoid "Unknown CA" errors (optional).
-  - **timezone**: Timezone for the application.
+- **settings**: This object contains configuration settings that are loaded from environment variables. It's possible containing keys are listed in the [Environment Variables](#environment-variables) section above.
 
 ### Example JSON Structure
 
@@ -265,6 +242,9 @@ All settings listed in the ENV Vars section can be set in the JSON file as well.
     },
     "rclone": {
       "config": "/config/rclone.conf"
+    },
+    "log": {
+      "level": "info"
     }
   }
 }
