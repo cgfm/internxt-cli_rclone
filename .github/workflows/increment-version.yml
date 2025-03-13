@@ -1,0 +1,45 @@
+name: Increment Release Version
+
+on:
+  workflow_dispatch:
+
+jobs:
+  increment-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Get the latest release
+        id: get_release
+        run: |
+          # Get the latest release tag
+          LATEST_TAG=$(git fetch --tags && git tag -l --sort=-creatordate | head -n 1)
+          echo "Latest release tag: $LATEST_TAG"
+
+          # Extract major, minor, patch and pre-release
+          if [[ $LATEST_TAG =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)([-_ ].*)?$ ]]; then
+              MAJOR=${BASH_REMATCH[1]}
+              MINOR=${BASH_REMATCH[2]}
+              PATCH=${BASH_REMATCH[3]}
+              PRE_RELEASE=${BASH_REMATCH[4]}
+              
+              # Increment the patch version
+              NEW_PATCH=$((PATCH + 1))
+              if [[ -n "$PRE_RELEASE" ]]; then
+                NEW_TAG="$MAJOR.$MINOR.$NEW_PATCH$PRE_RELEASE"
+              else
+                NEW_TAG="$MAJOR.$MINOR.$NEW_PATCH"
+              fi
+              
+              echo "New release tag: $NEW_TAG"
+              echo "new_tag=$NEW_TAG" >> $GITHUB_ENV
+          else
+              echo "Error: Latest tag format is invalid."
+              exit 1
+          fi
+
+      - name: Output new version tag
+        run: |
+          echo "The new version tag will be: ${{ env.new_tag }}"

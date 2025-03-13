@@ -2,9 +2,20 @@
 
 set -e
 
-# Log directory
 RCLONE_LOG_FILE="/logs/rclone.log"
 CRON_LOG_FILE="/logs/cron.log"
+WORKING_JSON="/working/config.json"
+schedule_index="$1"
+
+if [ -f "$WORKING_JSON" ]; then
+    # Extract log level
+    LOG_LEVEL=$(jq -r '.settings.log.level' "$WORKING_JSON")
+    log_debug "info" "Loaded LOG_LEVEL: $LOG_LEVEL"
+fi
+
+if [ -z "$LOG_LEVEL" ]; then
+    LOG_LEVEL="info"
+fi
 
 # Function to return debug messages based on the debug level
 log_debug() {
@@ -36,8 +47,6 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-WORKING_JSON="/working/config.json"
-schedule_index="$1"
 
 # Read the JSON file and execute commands for the specified schedule index
 if [ -f "$WORKING_JSON" ]; then

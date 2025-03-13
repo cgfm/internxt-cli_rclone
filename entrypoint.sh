@@ -137,22 +137,39 @@ if [ -z "$CONFIG_FILE" ] && [ -f "/config/config.json" ]; then
     CONFIG_FILE="/config/config.json"
 fi
 
+# Create a working copy of the JSON configuration if CONFIG_FILE is set
+WORKING_JSON="/working/config.json"
+mkdir -p /working  # Create the working directory
+
+# Check if a configuration file is provided
+if [ -n "$CONFIG_FILE" ] && [ -f "$CONFIG_FILE" ]; then
+    # Remove existing copy if it exists
+    [ -f "$WORKING_JSON" ] && rm "$WORKING_JSON"
+
+    # Create a copy of the given JSON configuration
+    cp "$CONFIG_FILE" "$WORKING_JSON"
+    log_debug "info" "Copied configuration from $CONFIG_FILE to $WORKING_JSON"
+else
+    log_debug "info" "Initialize with an empty JSON structure. No config file is provided"
+    echo "{\"cron_jobs\": [], \"settings\": {}}" > "$WORKING_JSON"  # Initialize with an empty structure
+fi
+
 # Load the JSON file to check if the keys are defined
-if [ -f "$CONFIG_FILE" ]; then
-    log_debug "fine" "Found config file at $CONFIG_FILE."
+if [ -f "$WORKING_JSON" ]; then
+    log_debug "fine" "Found config file at $WORKING_JSON."
     # Iterate over the environment variable map
     for env_var in "${!env_var_map[@]}"; do
         json_key=${env_var_map[$env_var]}
         
-        # Check if the JSON key exists in the CONFIG_FILE
-        if jq -e ".settings | .${json_key} != null" "$CONFIG_FILE" > /dev/null; then
+        # Check if the JSON key exists in the WORKING_JSON
+        if jq -e ".settings | .${json_key} != null" "$WORKING_JSON" > /dev/null; then
             log_debug "fine" "Searching for $json_key."
 
             # If the environment variable is not set, set it from the JSON value
             if [ -z "${!env_var}" ]; then
-                value=$(jq -r ".settings.${json_key}" "$CONFIG_FILE")
+                value=$(jq -r ".settings.${json_key}" "$WORKING_JSON")
                 
-                log_debug "fine" "$json_key with value '$value' found in $CONFIG_FILE."
+                log_debug "fine" "$json_key with value '$value' found in $WORKING_JSON."
                 # Check if the value is not empty before exporting
                 if [ -n "$value" ]; then
                     export "$env_var=$value"
@@ -162,14 +179,23 @@ if [ -f "$CONFIG_FILE" ]; then
                 fi
             else
                 log_debug "debug" "$env_var already set. Ignoring $json_key."
+                
+                # If the environment variable is set, add it to the WORKING_JSON
+                existing_value="${!env_var}"
+                
+                # Update existing settings in WORKING_JSON
+                jq --arg key "$json_key" --arg value "$existing_value" \
+                    '.settings[$key] = $value' "$WORKING_JSON" > tmp.$$.json && mv tmp.$$.json "$WORKING_JSON"
+
+                log_debug "debug" "Added existing environment variable to JSON: $env_var with value: $existing_value"
             fi
         else
-            log_debug "fine" "$json_key not found in $CONFIG_FILE."
+            log_debug "fine" "$json_key not found in $WORKING_JSON."
         fi
     done
-    log_debug "info" "Config file \"$CONFIG_FILE\" processed."
+    log_debug "info" "Config file \"$WORKING_JSON\" processed."
 else
-    log_debug "debug" "Config file not found at $CONFIG_FILE."
+    log_debug "debug" "Config file not found at $WORKING_JSON."
 fi
 
 export PHP_TZ="$TZ"
@@ -348,23 +374,6 @@ fi
 
 if [ -z "$CRON_COMMAND_FLAGS" ]; then
     CRON_COMMAND_FLAGS="--create-empty-src-dirs --retries 5 --verbose"  # Default flags
-fi
-
-# Create a working copy of the JSON configuration if CONFIG_FILE is set
-WORKING_JSON="/working/config.json"
-mkdir -p /working  # Create the working directory
-
-# Check if a configuration file is provided
-if [ -n "$CONFIG_FILE" ] && [ -f "$CONFIG_FILE" ]; then
-    # Remove existing copy if it exists
-    [ -f "$WORKING_JSON" ] && rm "$WORKING_JSON"
-
-    # Create a copy of the given JSON configuration
-    cp "$CONFIG_FILE" "$WORKING_JSON"
-    log_debug "debug" "Copied configuration from $CONFIG_FILE to $WORKING_JSON"
-else
-    log_debug "debug" "Initialize with an empty JSON structure. No config file is provided"
-    echo "{\"cron_jobs\": []}" > "$WORKING_JSON"  # Initialize with an empty structure
 fi
 
 # Check if cron_jobs key exists and initialize it if not
