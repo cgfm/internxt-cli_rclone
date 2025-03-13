@@ -37,10 +37,11 @@ The following environment variables can be set when running the Docker container
 | `CRON_COMMAND_FLAGS_1` to `CRON_COMMAND_FLAGS_20`  |                               | Up to 20 flags for the associated custom command can be set. Details are explained at [JSON Configuration](#json-configuration).                        |
 | `CRON_SCHEDULE_1` to `CRON_SCHEDULE_20` |                               | Up to 20 schedules for the associated custom command and/or the associated local and remote path can be set. Details are explained at [Building and Executing Cron Commands](#custom-cron-command).                        |
 | `ROOT_CA`                           |  `root_ca`                    | If the path to a root ca is set it will be appended to the ca-certificates.crt file to avoid "Unknown CA" errors (optional).                       |
-| `TZ`                                |  `timezone`                   | Timezone for the application. Default is `Etc/UTC`.                                                                                                |
-| `LOG_LEVEL`                         |  `log.level`                  | Set the log level for the application. Default is `info`. Possible values are `fine`, `debug`, `info` and `error`.<br>It's recommend to set the log level by env var. Otherwise the first log entrys will be logged with the default log level `info` until the JSON file is loaded.     |
-| `LOG_LOGFILE_COUNT`                  | `log.file_count`          | Set the number of log files to keep. Default is `3`. If its set to a negative value it will keep all log files.         |
-| `STOPATSTART`                       |                               | If set to `true`, the container will stop after the initial synchronization. Default is `false`.                                                   |
+| `TZ`                                |                               | Timezone for the application. Default is `Etc/UTC`.                                              |
+| `LOG_LEVEL`                         |  `log.level`                  | Set the log level for the application. Default is `info`. See [Log Level](#log-level) for more information.    |
+| `LOG_LOGFILE_COUNT`                  | `log.file_count`          | Set the number of log files to keep. Default is `3`. If its set to a negative value it will keep all log files. See [Log File Management](#log-file-management) for more information.        |
+| `LOG_MAX_LOG_SIZE`                   | `log.max_log_size`          | Set the maximum size of a single log file in bytes. Default is `10485760` (10MB). If its set to a negative value the log file size will not be limited. Instead at each startup the log file will be rotated. See [Log File Management](#log-file-management) for more information. |
+| `STOPATSTART`                       |                               | If set to `true`, the container will stop after the initial synchronization. Before starting any services. Default is `false`. This is just for debugging purposes.                        |
 
 ## Docker Image
 
@@ -321,6 +322,47 @@ The `health_check.sh` script ensures the operational status of the Internxt appl
 - Confirms the cron service is active and verifies that the specified cron jobs are configured (only if `CRON_SCHEDULE` is set).
 
 This script provides essential diagnostics for maintaining system health and service availability.
+
+## Logging Overview
+
+The application includes a robust logging mechanism that allows you to control the verbosity of log output and manage log files effectively. The logging behavior can be configured through various environment variables or JSON keys. Below are the key configurations you can set:
+
+### Log Level
+
+- **Environment Variable**: `LOG_LEVEL`
+- **JSON Key**: `log.level`
+- **Description**: This variable sets the log level for the application. The default log level is `info`, which means that only informational messages and above (like warnings and errors) will be logged. 
+- **Possible Values**:
+  - `fine`: Very detailed logging, useful for debugging.
+  - `debug`: Less detailed than `fine`, but still verbose.
+  - `info`: General information about the application's operations (default).
+  - `error`: Only error messages are logged.
+  
+  It's recommended to set the log level using the environment variable. If not set, the application will log entries at the default level (`info`) until the JSON configuration file is loaded.
+
+### Log File Management
+
+The application provides options to manage log files, including the number of files to keep and their maximum size.
+
+- **Environment Variable**: `LOG_LOGFILE_COUNT`
+- **JSON Key**: `log.file_count`
+- **Description**: This variable determines the number of log files to retain. The default value is `3`. If set to a negative value, all log files will be preserved.
+
+- **Environment Variable**: `LOG_MAX_LOG_SIZE`
+- **JSON Key**: `log.max_log_size`
+- **Description**: This variable sets the maximum size (in bytes) for a single log file. The default size is `10485760` (10MB). If set to a negative value, there will be no size limit.
+
+  When the log file exceeds the specified size, it will be rotated. For example, if you have set the maximum size to `10MB` and the logfile count to `3`, the application will keep the original log file and up to three older versions. Each of these can be up to `10MB` in size, leading to a potential total log size of `4 x 10MB = 40MB`.
+
+### Example Usage
+
+To configure logging, you can set the environment variables when running the application. Here’s an example:
+
+```bash
+docker run -e LOG_LEVEL="debug" -e LOG_LOGFILE_COUNT="5" -e LOG_MAX_LOG_SIZE="20971520" ...
+```
+
+This command sets the log level to debug, keeps up to 5 log files, and limits each log file to 20MB.
 
 ## License
 

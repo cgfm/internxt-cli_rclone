@@ -9,14 +9,16 @@ log_debug() {
 
     # Check if LOG_LEVEL
     if [ "$LOG_LEVEL" = "fine" ] && [ "$level" = "fine" ]; then
-        echo "[FINE]: $message"
+        message="[FINE]: $message"
     elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ]) && [ "$level" = "debug" ]; then
-        echo "[DEBUG]: $message"
+        message="[DEBUG]: $message"
     elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ])  && [ "$level" = "info" ]; then
-        echo "[INFO]: $message"
+        message="[INFO]: $message"
     elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ] || [ "$LOG_LEVEL" = "error" ]) && [ "$level" = "error" ]; then
-        echo "[ERROR]: $message"
+        message="[ERROR]: $message"
     fi
+    # Log to file
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') $message"
 }
 
 # Check if the initialization has been done
@@ -46,18 +48,8 @@ if [ "$STOPATSTART" = "true" ]; then
     tail -f /dev/null  # Keep the script running indefinitely
 fi
 
-# Array of log files to rotate
-LOCAL_LOG_FILES=(
-    "/config/log/cron.log"
-    "/config/log/rclone.log"
-    "/config/log/internxt/internxt-cli-error.log"
-    "/config/log/internxt/internxt-webdav-error.log"
-    "/config/log/internxt/internxt-cli-combined.log"
-    "/config/log/internxt/internxt-webdav-combined.log"
-)
-
-# Rotate logs
-for log_file in "${LOCAL_LOG_FILES[@]}"; do
+rotate_logs() {
+    log_file="$1"
     log_debug "fine" "Rotating log file: $log_file"
     if [ -f "$log_file" ]; then
         max_log_files=${LOG_FILE_COUNT:-3} # Default to 3 if LOG_FILE_COUNT is not set
@@ -73,9 +65,10 @@ for log_file in "${LOCAL_LOG_FILES[@]}"; do
                     fi
                 fi
             done
+            max_log_files+=1  # Increment to get the next log file number
         fi
         # Increment all existing log numbers starting from the highest
-        for ((i=max_log_files; i>0; i--)); do
+        for ((i=max_log_files-1; i>0; i--)); do
             if [ -f "$log_file.$i" ]; then
                 mv "$log_file.$i" "$log_file.$((i + 1))" 2>/dev/null || true
             fi
@@ -86,8 +79,28 @@ for log_file in "${LOCAL_LOG_FILES[@]}"; do
         # Create a new log file
     fi
     touch "$log_file"
-done
-log_debug "debug" "Log files rotated. New log files created."
+}
+
+# Array of log files to rotate
+LOCAL_LOG_FILES=(
+    "/config/log/cron.log"
+    "/config/log/rclone.log"
+    "/config/log/internxt/internxt-cli-error.log"
+    "/config/log/internxt/internxt-webdav-error.log"
+    "/config/log/internxt/internxt-cli-combined.log"
+    "/config/log/internxt/internxt-webdav-combined.log"
+)
+
+max_log_size=${LOG_MAX_LOG_SIZE:-10485760}
+
+# Check the size of the log file only if LOG_MAX_LOG_SIZE is set
+if [ "$max_log_size" -le 0 ]; then
+    # Rotate logs
+    for log_file in "${LOCAL_LOG_FILES[@]}"; do
+        rotate_logs "$log_file"
+    done
+    log_debug "debug" "Log files rotated. New log files created."
+fi
 
 # Define expected environment variables and their corresponding JSON keys
 declare -A env_var_map=(
@@ -112,8 +125,8 @@ declare -A env_var_map=(
     ["CRON_SCHEDULE"]="cron.schedule"
     ["LOG_FILE_COUNT"]="log.file_count"
     ["LOG_LEVEL"]="log.level"
+    ["LOG_MAX_LOG_SIZE"]="log.max_log_size"
     ["ROOT_CA"]="root_ca"
-    ["TZ"]="timezone"
 )
 
 # If no CONFIG_FILE is provided, check for the default location
@@ -235,8 +248,7 @@ if rclone config create Internxt webdav \
     --config "${RCLONE_CONFIG}" >/dev/null 2>&1; then
     log_debug "info" "Configured rclone internxt webdav remote."
     
-    declare -a cont_rclone_config=($(< $RCLONE_CONFIG))
-    log_debug "fine" "Rclone config:\n${cont_rclone_config[@]}"
+    log_debug "fine" "Rclone config:\n$(< $RCLONE_CONFIG)"
 else
     # Exit if the configuration fails
     log_debug "error" "Failed to configure rclone internxt webdav remote."
@@ -426,8 +438,7 @@ for i in {1..20}; do
     fi
 done
 
-declare -a cont_working_json=($(< $WORKING_JSON))
-log_debug "fine" "Working JSON created:\n${cont_working_json[@]%$'\r'}"
+log_debug "fine" "Working JSON created:\n$(jq --indent 2 . "$WORKING_JSON")"
 
 if [ -f "$WORKING_JSON" ]; then
     # Iterate over each job in the JSON file
@@ -435,7 +446,7 @@ if [ -f "$WORKING_JSON" ]; then
     # Start cron jobs based on the schedules in the JSON file
     if [ "$total_schedules" -gt 0 ]; then
         # Initialize crontab if it doesn't exist
-        rm /var/spool/cron/root
+        [ -f "/var/spool/cron/root" ] && rm /var/spool/cron/root
         touch /var/spool/cron/root
 
         # Iterate over each job in the JSON file
@@ -455,9 +466,8 @@ if [ -f "$WORKING_JSON" ]; then
         else
             log_debug "info" "Cron service started."
         fi
-                
-        declare -a cont_cron_file=($(< /var/spool/cron/root))
-        log_debug "fine" "Cron jobs created created:\n${cont_cron_file[@]%$'\r'}"
+        
+        log_debug "fine" "Cron jobs created created:\n$(< /var/spool/cron/root)"
     fi
 fi
 
@@ -473,35 +483,61 @@ echo " "
 tail_with_prefix() {
     local log_file="$1"
     local prefix="$2"
-    local isJSON="$3"
 
     tail -f "$log_file" | while read -r line; do
-        if [ "$isJSON" = "true" ]; then
-            # If the line is JSON, parse it and extract the desired fields
-            timestamp=$(echo "$line" | jq -r '.timestamp')
-            level=$(echo "$line" | jq -r '.level' | tr '[:lower:]' '[:upper:]')
-            service=$(echo "$line" | jq -r '.service')
-            message=$(echo "$line" | jq -r '.message')
-            echo "[$prefix] $timestamp $level $service $message"
-        else
-            # If the line is not JSON, it is from rclone
-            echo "[$prefix] $line"
+        
+        if [[ "$line" == "tail: '$log_file'"* ]]; then
+            continue
         fi
-    done
+
+        # Prompt the line to the log file only if onlyCheckSize is not true
+        if [ "$onlyCheckSize" != "true" ]; then
+            # If the line is JSON, parse it and extract the desired fields
+            if echo "$line" | jq . >/dev/null 2>&1; then
+                timestamp=$(echo "$line" | jq -r '.timestamp')
+                level=$(echo "$line" | jq -r '.level' | tr '[:lower:]' '[:upper:]')
+                service=$(echo "$line" | jq -r '.service')
+                message=$(echo "$line" | jq -r '.message')
+                echo "[$prefix] $timestamp $level $service $message"
+            else
+                # If the line is not JSON, it is from rclone
+                echo "[$prefix] $line"
+            fi
+        fi
+    done || {
+        log_debug "error" "An unexpected error occurred while tailing the log file: $log_file"
+        return 1  # Exit with an error status if the tailing process fails
+    }
 }
 
 # Start tailing multiple log files in parallel
-{
-    tail_with_prefix "/config/log/cron.log" "cron" false &  # Tail cron log
-    tail_with_prefix "/config/log/rclone.log" "rclone" false &  # Tail rclone log
-    tail_with_prefix "/config/log/internxt/internxt-cli-error.log" "internxt" true &  # Tail internxt error log
-    tail_with_prefix "/config/log/internxt/internxt-webdav-error.log" "internxt" true &  # Tail internxt webdav error log
-    if [ "$LOG_LEVEL" = "fine" ]; then
-        tail_with_prefix "/config/log/internxt/internxt-cli-combined.log" "internxt" true &  # Tail internxt combined log
-        tail_with_prefix "/config/log/internxt/internxt-webdav-combined.log" "internxt" true &  # Tail internxt webdav combined log
-    fi
-    wait  # Wait for all background processes to finish
-}
+for log_file in "${LOCAL_LOG_FILES[@]}"; do
+    prefix=$(basename "$log_file" | sed 's/[\.-].*$//')  # Extract prefix from filename
 
+    # Decide whether to start tailing based on the log level
+    if [[ "$LOG_LEVEL" = "fine" || ! "$log_file" =~ combined\.log$ || ! "$log_file" =~ internxt ]]; then
+        tail_with_prefix "$log_file" "$prefix" &  # Tail log file with prefix
+    else
+        log_debug "info" "Skipping logging for $log_file as the log level is not 'fine'."
+    fi
+done
+
+max_log_size=${LOG_MAX_LOG_SIZE:-10485760}
+
+while true; do
+    # Check the size of the log file only if LOG_MAX_LOG_SIZE is set
+    if [ "$max_log_size" -gt 0 ]; then
+        for log_file in "${LOCAL_LOG_FILES[@]}"; do
+            # Check the size of the log file
+            current_size=$(stat -c%s "$log_file")
+
+            # Rotate the log file if current size exceeds max size
+            if [ "$current_size" -gt "$max_log_size" ]; then
+               rotate_logs "$log_file"
+            fi
+       done
+    fi
+    sleep 60  # Adjust the sleep time as needed
+done &
 # Wait indefinitely to keep the script running
 wait

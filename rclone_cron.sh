@@ -2,6 +2,10 @@
 
 set -e
 
+# Log directory
+RCLONE_LOG_FILE="/config/log/rclone.log"
+CRON_LOG_FILE="/config/log/cron.log"
+
 # Function to return debug messages based on the debug level
 log_debug() {
     local level="$1"
@@ -9,19 +13,17 @@ log_debug() {
 
     # Check if LOG_LEVEL
     if [ "$LOG_LEVEL" = "fine" ] && [ "$level" = "fine" ]; then
-        echo "[FINE]: $message"
+        message="[FINE]: $message"
     elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ]) && [ "$level" = "debug" ]; then
-        echo "[DEBUG]: $message"
+        message="[DEBUG]: $message"
     elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ])  && [ "$level" = "info" ]; then
-        echo "[INFO]: $message"
+        message="[INFO]: $message"
     elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ] || [ "$LOG_LEVEL" = "error" ]) && [ "$level" = "error" ]; then
-        echo "[ERROR]: $message"
+        message="[ERROR]: $message"
     fi
+    # Log to file
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') $message" | tee "$CRON_LOG_FILE"
 }
-
-# Log directory
-RCLONE_LOG_FILE="/config/log/rclone.log"
-CRON_LOG_FILE="/config/log/cron.log"
 
 # Set RCLONE_CONFIG if not set
 if [ -z "$RCLONE_CONFIG" ]; then
@@ -40,13 +42,16 @@ schedule_index="$1"
 # Read the JSON file and execute commands for the specified schedule index
 if [ -f "$WORKING_JSON" ]; then
     # Extract the commands for the specified schedule index
+    schedule=$(jq -c ".cron_jobs[$schedule_index].schedule" "$WORKING_JSON" 2>/dev/null)
     commands=$(jq -c ".cron_jobs[$schedule_index].commands[]" "$WORKING_JSON" 2>/dev/null)
-    log_debug "fine" "Commands for schedule index $schedule_index: $commands"
+    log_debug "fine" "Commands for schedule index $schedule_index:\n$(echo "$commands" | jq --indent 2 .)"
     # Check if commands are found
     if [ -z "$commands" ]; then
         log_debug "error" "No commands found for schedule index $schedule_index."
         exit 1
     fi
+
+    log_debug "info" "Running commands for schedule $schedule."
 
     # Process each command
     echo "$commands" | while IFS= read -r command_obj; do
