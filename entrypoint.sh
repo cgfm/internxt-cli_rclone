@@ -37,10 +37,10 @@ else
     log_debug "debug" "Initialization already done. Skipping copy from /root/.internxt-cli to /data/internxt and /root/.cache/rclone to /data/rclone."
 fi
 # Create a symbolic link for /root/.internxt-cli to /data/internxt
-[ -d "/root/.internxt-cli" ] && rm -rf /root/.internxt-cli
+rm -rf /root/.internxt-cli
 ln -s /data/internxt /root/.internxt-cli
 # Create a symbolic link for /root/.cache/rclone to /data/rclone
-[ -d "/root/.cache/rclone" ] && rm -rf /root/.cache/rclone
+rm -rf /root/.cache/rclone
 ln -s /data/rclone /root/.cache/rclone
 
 # Check if STOPATSTART mode is enabled
