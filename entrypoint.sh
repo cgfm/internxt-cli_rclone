@@ -27,7 +27,6 @@ if [ ! -f /data/init_done ]; then
 
     # Copy contents from /root/.internxt-cli to /data
     cp -r /root/.internxt-cli/* /data/internxt/
-    cp -r /root/.cache/rclone/* /data/rclone
     mv /data/internxt/logs /logs/internxt
     
     ln -s /logs/internxt /data/internxt/logs
@@ -38,10 +37,10 @@ else
     log_debug "debug" "Initialization already done. Skipping copy from /root/.internxt-cli to /data/internxt and /root/.cache/rclone to /data/rclone."
 fi
 # Create a symbolic link for /root/.internxt-cli to /data/internxt
-rm -rf /root/.internxt-cli
+[ -d "/root/.internxt-cli" ] && rm -rf /root/.internxt-cli
 ln -s /data/internxt /root/.internxt-cli
 # Create a symbolic link for /root/.cache/rclone to /data/rclone
-rm -rf /root/.cache/rclone
+[ -d "/root/.cache/rclone" ] && rm -rf /root/.cache/rclone
 ln -s /data/rclone /root/.cache/rclone
 
 # Check if STOPATSTART mode is enabled
