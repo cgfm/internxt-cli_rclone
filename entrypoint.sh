@@ -212,7 +212,7 @@ if [ -n "$INTERNXT_SSL_CERT" ] && [ -n "$INTERNXT_SSL_KEY" ]; then
     if [ -f "$INTERNXT_SSL_CERT" ]; then
         # Create a symbolic link for the SSL certificate if it does not point to the default location
         if [ "$INTERNXT_SSL_CERT" != "/root/.internxt-cli/certs/cert.crt" ] && [ "$INTERNXT_SSL_CERT" != "/config/internxt/certs/cert.crt" ]; then
-            ln -sf "$INTERNXT_SSL_CERT" /root/.internxt-cli/certs/cert.crt
+            ln -sf "$INTERNXT_SSL_CERT" /data/internxt/certs/cert.crt
             log_debug "debug" "Linked SSL certificate: $INTERNXT_SSL_CERT"
         fi
     else
@@ -223,7 +223,7 @@ if [ -n "$INTERNXT_SSL_CERT" ] && [ -n "$INTERNXT_SSL_KEY" ]; then
     if [ -f "$INTERNXT_SSL_KEY" ]; then
         # Create a symbolic link for the SSL key if it does not point to the default location
         if [ "$INTERNXT_SSL_KEY" != "/root/.internxt-cli/certs/priv.key" ] && [ "$INTERNXT_SSL_KEY" != "/config/internxt/certs/priv.key" ]; then
-            ln -sf "$INTERNXT_SSL_KEY" /root/.internxt-cli/certs/priv.key
+            ln -sf "$INTERNXT_SSL_KEY" /data/internxt/certs/priv.key
             log_debug "debug" "Linked SSL key: $INTERNXT_SSL_KEY"
         fi
     else
