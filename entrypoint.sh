@@ -169,6 +169,8 @@ else
     log_debug "debug" "Config file not found at $CONFIG_FILE."
 fi
 
+export PHP_TZ="$TZ"
+
 # Ensure required environment variables are set
 if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
     log_debug "error" "INTERNXT_EMAIL and INTERNXT_PASSWORD must be set."
