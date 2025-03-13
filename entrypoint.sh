@@ -38,10 +38,10 @@ else
 fi
 # Create a symbolic link for /root/.internxt-cli to /data/internxt
 rm -rf /root/.internxt-cli
-ln -s /data/internxt /root/.internxt-cli
+ln -sf /data/internxt /root/.internxt-cli
 # Create a symbolic link for /root/.cache/rclone to /data/rclone
 rm -rf /root/.cache/rclone
-ln -s /data/rclone /root/.cache/rclone
+ln -sf /data/rclone /root/.cache/rclone
 
 # Check if STOPATSTART mode is enabled
 if [ "$STOPATSTART" = "true" ]; then
