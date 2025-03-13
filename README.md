@@ -54,7 +54,8 @@ You can run the Docker container using the following command:
 
 ```bash
 docker run -v /path/to/local/config:/config \
-           -v /path/to/local/internxt/data:/data \
+           -v /path/to/local/data:/data \
+           -v /path/to/local/logs:/logs \
            --name internxt-cli_container \
            -e INTERNXT_EMAIL="your_email@example.com" \
            -e INTERNXT_PASSWORD="your_password" \
@@ -96,10 +97,11 @@ services:
     volumes:
       - /local/config/dir:/config
       - /local/data/dir:/data
+      - /local/logs/dir:/logs
     restart: unless-stopped
 ```
 
-## Directory Structure: `/config` and `/data`
+## Directory Structure: `/config`, `/data` and `/logs`
 
 ### Overview
 
@@ -122,10 +124,17 @@ This application utilizes two primary directories—`/config` and `/data`—to m
   
 ### `/config` Directory
 
-- **Purpose**: The `/config` directory is used to store configuration files and logs for the application.
+- **Purpose**: The `/config` directory is used to store configuration files for the application.
 - **Contents**:
-  - **Logs**: The application writes logs to `/config/log`, which allows for monitoring and debugging.
-  - **Internxt Logs**: The logs related to the Internxt CLI are specifically stored in `/config/log/internxt`, which is created during the first run if it does not already exist.
+  - **rClone Conf**: By default the rClone conf will be stored here to let the remotes be stored persistent.
+  - **config json**: By default the config.json will be stored here.
+
+### `/logs` Directory
+
+- **Purpose**: The `/logs` directory is used to store log files for the application.
+- **Contents**:
+  - **Logs**: The application writes logs to `/logs`, which allows for monitoring and debugging.
+  - **Internxt Logs**: The logs related to the Internxt CLI are specifically stored in `/logs/internxt`, which is created during the first run if it does not already exist.
 
 ### Summary
 
