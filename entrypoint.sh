@@ -26,21 +26,24 @@ if [ ! -f /data/init_done ]; then
     log_debug "info" "First run: copying contents from /root/.internxt-cli to /data..."
 
     # Copy contents from /root/.internxt-cli to /data
-    cp -r /root/.internxt-cli/* /data/
+    cp -r /root/.internxt-cli/* /data/internxt/
+    cp -r /root/.cache/rclone/* /data/rclone
     rm -r /root/.internxt-cli
-    mv /data/logs /config/log/internxt
+    mv /data/internxt/logs /logs/internxt
     
-    # Create a symbolic link for /root/.internxt-cli to /data
-    ln -s /config/log/internxt /data/logs
+    ln -s /logs/internxt /data/internxt/logs
     
     # Create the init_done file to mark that initialization is complete
     touch /data/init_done
 else
-    log_debug "debug" "Initialization already done. Skipping copy from /root/.internxt-cli to /data."
+    log_debug "debug" "Initialization already done. Skipping copy from /root/.internxt-cli to /data/internxt and /root/.cache/rclone to /data/rclone."
 fi
-# Create a symbolic link for /root/.internxt-cli to /data
+# Create a symbolic link for /root/.internxt-cli to /data/internxt
 [ -d "/root/.internxt-cli" ] &&  rm -r /root/.internxt-cli
-ln -s /data /root/.internxt-cli
+ln -s /data/internxt /root/.internxt-cli
+# Create a symbolic link for /root/.cache/rclone to /data/rclone
+[ -d "/root/.cache/rclone" ] &&  rm -r /root/.cache/rclone
+ln -s /data/rclone /root/.cache/rclone
 
 # Check if STOPATSTART mode is enabled
 if [ "$STOPATSTART" = "true" ]; then
@@ -83,12 +86,12 @@ rotate_logs() {
 
 # Array of log files to rotate
 LOCAL_LOG_FILES=(
-    "/config/log/cron.log"
-    "/config/log/rclone.log"
-    "/config/log/internxt/internxt-cli-error.log"
-    "/config/log/internxt/internxt-webdav-error.log"
-    "/config/log/internxt/internxt-cli-combined.log"
-    "/config/log/internxt/internxt-webdav-combined.log"
+    "/logs/cron.log"
+    "/logs/rclone.log"
+    "/logs/internxt/internxt-cli-error.log"
+    "/logs/internxt/internxt-webdav-error.log"
+    "/logs/internxt/internxt-cli-combined.log"
+    "/logs/internxt/internxt-webdav-combined.log"
 )
 
 max_log_size=${LOG_MAX_LOG_SIZE:-10485760}
@@ -218,7 +221,7 @@ if [ -n "$ROOT_CA" ]; then
 fi
 
 # Create log directory if it doesn't exist
-mkdir -p "/config/log/"
+mkdir -p "/logs/"
 
 # Set RCLONE_CONFIG if not set
 if [ -z "$RCLONE_CONFIG" ]; then
@@ -284,7 +287,7 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
         --rc-web-gui-update \
         --rc-addr :$RCLONE_WEB_GUI_PORT \
         --config $RCLONE_CONFIG \
-        --log-file /config/log/rclone.log \
+        --log-file /logs/rclone.log \
         --log-format date,time,UTC \
         $RCLONE_WEB_GUI_EXTRA_PARAMS"
     
@@ -305,7 +308,7 @@ fi
 log_debug "fine" "$OUTPUT" 
 
 # Write the WebDAV configuration to the config file
-WEBDAV_CONFIG_PATH="/data/config.webdav.inxt"
+WEBDAV_CONFIG_PATH="/data/internxt/config.webdav.inxt"
 
 log_debug "debug" "Writing WebDAV configuration to $WEBDAV_CONFIG_PATH..."
 mkdir -p "$(dirname "$WEBDAV_CONFIG_PATH")"  # Ensure the directory exists

@@ -114,7 +114,7 @@ This application utilizes two primary directories—`/config` and `/data`—to m
   - If the `init_done` file does not exist, the script performs the following actions:
     - Copies the `config.webdav.inxt` file from `/root/.internxt-cli` to `/data`. This file contains the WebDAV configuration for the Internxt service.
     - Copies the `internxt-cli-drive.sqlite` database file from `/root/.internxt-cli` to `/data`. This database stores important data for the Internxt CLI.
-    - Copies the entire `logs` directory from `/root/.internxt-cli` to `/config/log/internxt`, allowing for access to logs related to the Internxt CLI.
+    - Copies the entire `logs` directory from `/root/.internxt-cli` to `/logs/internxt`, allowing for access to logs related to the Internxt CLI.
 
   - After copying these files, the script creates a file named `init_done` in the `/data` directory to signal that the initialization has been completed.
 
@@ -125,8 +125,8 @@ This application utilizes two primary directories—`/config` and `/data`—to m
 
 - **Purpose**: The `/config` directory is used to store configuration files and logs for the application.
 - **Contents**:
-  - **Logs**: The application writes logs to `/config/log`, which allows for monitoring and debugging.
-  - **Internxt Logs**: The logs related to the Internxt CLI are specifically stored in `/config/log/internxt`, which is created during the first run if it does not already exist.
+  - **Logs**: The application writes logs to `/logs`, which allows for monitoring and debugging.
+  - **Internxt Logs**: The logs related to the Internxt CLI are specifically stored in `/logs/internxt`, which is created during the first run if it does not already exist.
 
 ### Summary
 

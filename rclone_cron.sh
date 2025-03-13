@@ -3,8 +3,8 @@
 set -e
 
 # Log directory
-RCLONE_LOG_FILE="/config/log/rclone.log"
-CRON_LOG_FILE="/config/log/cron.log"
+RCLONE_LOG_FILE="/logs/rclone.log"
+CRON_LOG_FILE="/logs/cron.log"
 
 # Function to return debug messages based on the debug level
 log_debug() {

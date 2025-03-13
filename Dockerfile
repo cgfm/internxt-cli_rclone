@@ -18,8 +18,8 @@ RUN npm install -g @internxt/cli
 RUN npm update -g axios
 
 # Create directories for the rclone configuration and SSL certs
-RUN mkdir -p /config/log/internxt /config/internxt/certs /root/.internxt-cli /data && \
-    touch /config/log/rclone.log
+RUN mkdir -p /logs/internxt /config/internxt/certs /root/.internxt-cli /data/internxt /data/rclone && \
+    touch /logs/rclone.log
 
 # Set the timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -47,6 +47,13 @@ EXPOSE 53682
 
 # Set the entry point to run the script
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+VOLUME [ "/data" ]
+VOLUME [ "/config" ]
+VOLUME [ "/logs" ]
+
+# Only needed if SFTP with key is used
+VOLUME [ "/root/.ssh" ]
 
 # Add a health check that checks if the Internxt CLI is functioning
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
