@@ -431,14 +431,15 @@ log_debug "fine" "Working JSON created:\n${cont_working_json[@]%$'\r'}"
 
 if [ -f "$WORKING_JSON" ]; then
     # Iterate over each job in the JSON file
-    total_jobs=$(jq '.cron_jobs | length' "$WORKING_JSON")
+    total_schedules=$(jq '.cron_jobs | length' "$WORKING_JSON")
     # Start cron jobs based on the schedules in the JSON file
-    if [ "$total_jobs" -gt 0 ]; then
+    if [ "$total_schedules" -gt 0 ]; then
         # Initialize crontab if it doesn't exist
+        rm /var/spool/cron/root
         touch /var/spool/cron/root
 
         # Iterate over each job in the JSON file
-        for ((i=0; i<total_jobs; i++)); do
+        for ((i=0; i<total_schedules; i++)); do
             # Extract the schedule for the current job
             schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
             # Register the cron job in crontab
