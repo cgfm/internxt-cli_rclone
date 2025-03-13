@@ -41,4 +41,5 @@ jobs:
           fi
 
       - name: Output new version tag
-        run: echo "The new version tag will be: ${{ env.new_tag }}"
+        run: |
+          echo "The new version tag will be: ${{ env.new_tag }}"
