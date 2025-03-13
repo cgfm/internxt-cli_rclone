@@ -3,26 +3,6 @@ FROM ubuntu:24.04
 # Set environment variables
 ENV STOPATSTART="false"
 ENV TZ=Etc/UTC
-ENV CRON_COMMAND=""
-ENV CRON_SCHEDULE=""
-# Internxt environment variables
-ENV INTERNXT_EMAIL=""
-ENV INTERNXT_HTTPS=false
-ENV INTERNXT_PASSWORD=""
-ENV INTERNXT_TOTP=""
-ENV INTERNXT_WEB_PORT=3005
-# rClone environment variables
-ENV RCLONE_CONFIG="/config/rclone.conf"
-ENV RCLONE_GUI_PASS="rclone_password"
-ENV RCLONE_GUI_USER="rclone_user"
-ENV RCLONE_SSL_CERT=""
-ENV RCLONE_SSL_KEY=""
-ENV RCLONE_WEB_GUI_PORT=5572
-# Logging environment variables
-ENV LOG_LEVEL="info"
-ENV LOG_LOGFILE_COUNT="3"
-ENV LOG_MAX_LOG_SIZE="10485760"
-
 
 RUN apt-get update && \
     apt-get install -y curl gnupg2 tzdata jq gzip unzip cron && \
