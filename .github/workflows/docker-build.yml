@@ -6,17 +6,16 @@ on:
       new_version:
         description: 'New release version (optional)'
         required: false
-  
-#  push:
-#    paths-ignore:
-#      - README.md  # Ignore changes to README.md
-#      - .git/**
-#      - .github/**
-
+        
 jobs:
   build:
     runs-on: ubuntu-latest
 
+    permissions:  # Add this section for explicit permissions
+      contents: read  # Allow read access to the repository contents
+      issues: write    # Allow write access to issues
+      pull-requests: write  # Allow write access to pull requests
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
