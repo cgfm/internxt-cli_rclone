@@ -18,7 +18,7 @@ RUN npm install -g @internxt/cli
 RUN npm update -g axios
 
 # Create directories for the rclone configuration and SSL certs
-RUN mkdir -p /logs/internxt /config/internxt/certs /root/.internxt-cli /data/internxt /data/rclone && \
+RUN mkdir -p /logs/internxt /config/internxt/certs /root/.internxt-cli /root/.cache /data/internxt /data/rclone && \
     touch /logs/rclone.log
 
 # Set the timezone
