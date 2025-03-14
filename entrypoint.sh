@@ -21,34 +21,7 @@ log_debug() {
     echo -e "$(date '+%Y-%m-%d %H:%M:%S') $message"
 }
 
-# Check if the initialization has been done
-if [ ! -f /data/init_done ]; then
-    log_debug "info" "First run: copying contents from /root/.internxt-cli to /data..."
-
-    # Copy contents from /root/.internxt-cli to /data
-    cp -r /root/.internxt-cli/* /data/internxt/
-    mv /data/internxt/logs /logs/internxt
-    
-    ln -s /logs/internxt /data/internxt/logs
-    
-    # Create the init_done file to mark that initialization is complete
-    touch /data/init_done
-else
-    log_debug "debug" "Initialization already done. Skipping copy from /root/.internxt-cli to /data/internxt and /root/.cache/rclone to /data/rclone."
-fi
-# Create a symbolic link for /root/.internxt-cli to /data/internxt
-rm -rf /root/.internxt-cli
-ln -sf /data/internxt /root/.internxt-cli
-# Create a symbolic link for /root/.cache/rclone to /data/rclone
-rm -rf /root/.cache/rclone
-ln -sf /data/rclone /root/.cache/rclone
-
-# Check if STOPATSTART mode is enabled
-if [ "$STOPATSTART" = "true" ]; then
-    log_debug "info" "STOPATSTART mode is enabled."
-    tail -f /dev/null  # Keep the script running indefinitely
-fi
-
+# Rotate logs to prevent them from growing indefinitely
 rotate_logs() {
     log_file="$1"
     log_debug "fine" "Rotating log file: $log_file"
@@ -82,26 +55,8 @@ rotate_logs() {
     touch "$log_file"
 }
 
-# Array of log files to rotate
-LOCAL_LOG_FILES=(
-    "/logs/cron.log"
-    "/logs/rclone.log"
-    "/logs/internxt/internxt-cli-error.log"
-    "/logs/internxt/internxt-webdav-error.log"
-    "/logs/internxt/internxt-cli-combined.log"
-    "/logs/internxt/internxt-webdav-combined.log"
-)
-
-max_log_size=${LOG_MAX_LOG_SIZE:-10485760}
-
-# Check the size of the log file only if LOG_MAX_LOG_SIZE is set
-if [ "$max_log_size" -le 0 ]; then
-    # Rotate logs
-    for log_file in "${LOCAL_LOG_FILES[@]}"; do
-        rotate_logs "$log_file"
-    done
-    log_debug "debug" "Log files rotated. New log files created."
-fi
+# Write the WebDAV configuration to the config file
+WEBDAV_CONFIG_PATH="/data/internxt/config.webdav.inxt"
 
 # Define expected environment variables and their corresponding JSON keys
 declare -A env_var_map=(
@@ -137,7 +92,60 @@ fi
 
 # Create a working copy of the JSON configuration if CONFIG_FILE is set
 WORKING_JSON="/working/config.json"
-mkdir -p /working  # Create the working directory
+
+# Array of log files to rotate
+LOCAL_LOG_FILES=(
+    "/logs/cron.log"
+    "/logs/rclone.log"
+    "/logs/internxt/internxt-cli-error.log"
+    "/logs/internxt/internxt-webdav-error.log"
+    "/logs/internxt/internxt-cli-combined.log"
+    "/logs/internxt/internxt-webdav-combined.log"
+)
+
+# Create directories if they do not exist
+mkdir -p /data/internxt/certs /data/rclone /logs/internxt /working
+mkdir -p "$(dirname "$WEBDAV_CONFIG_PATH")"  # Ensure the directory exists
+
+# Check if the initialization has been done
+if [ ! -f /data/init_done ]; then
+    log_debug "info" "First run: copying contents from /root/.internxt-cli to /data/internxt and /logs/internxt..."
+
+    # Copy contents from /root/.internxt-cli to /data
+    cp -r /root/.internxt-cli/* /data/internxt
+    mv /data/internxt/logs /logs/internxt
+    
+    ln -s /logs/internxt /data/internxt/logs
+    
+    # Create the init_done file to mark that initialization is complete
+    touch /data/init_done
+else
+    log_debug "debug" "Initialization already done. Skipping copy from /root/.internxt-cli to /data/internxt and /root/.cache/rclone to /data/rclone."
+fi
+
+# Create a symbolic link for /root/.internxt-cli to /data/internxt
+rm -rf /root/.internxt-cli
+ln -sf /data/internxt /root/.internxt-cli
+# Create a symbolic link for /root/.cache/rclone to /data/rclone
+rm -rf /root/.cache/rclone
+ln -sf /data/rclone /root/.cache/rclone
+
+# Check if STOPATSTART mode is enabled
+if [ "$STOPATSTART" = "true" ]; then
+    log_debug "info" "STOPATSTART mode is enabled."
+    tail -f /dev/null  # Keep the script running indefinitely
+fi
+
+max_log_size=${LOG_MAX_LOG_SIZE:-10485760}
+
+# Check the size of the log file only if LOG_MAX_LOG_SIZE is set
+if [ "$max_log_size" -le 0 ]; then
+    # Rotate logs
+    for log_file in "${LOCAL_LOG_FILES[@]}"; do
+        rotate_logs "$log_file"
+    done
+    log_debug "debug" "Log files rotated. New log files created."
+fi
 
 # Check if a configuration file is provided
 if [ -n "$CONFIG_FILE" ] && [ -f "$CONFIG_FILE" ]; then
@@ -244,9 +252,6 @@ if [ -n "$ROOT_CA" ]; then
     fi
 fi
 
-# Create log directory if it doesn't exist
-mkdir -p "/logs/"
-
 # Set RCLONE_CONFIG if not set
 if [ -z "$RCLONE_CONFIG" ]; then
     RCLONE_CONFIG="/config/rclone.conf"
@@ -265,7 +270,6 @@ fi
 
 # Debug message for protocol
 log_debug "debug" "Using protocol: $PROTOCOL"
-
 
 # Configure rclone to use the Internxt WebDAV server
 log_debug "debug" "Configuring rclone internxt webdav remote with $PROTOCOL..."
@@ -318,6 +322,7 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
     log_debug "debug" "Starting rclone with command:\n$rclone_command"
     eval "$rclone_command &"  # Execute the rclone command in the background
 fi
+
 OUTPUT=""
 # Handle TOTP for two-factor authentication
 if [ -n "$INTERNXT_TOTP" ]; then
@@ -331,19 +336,13 @@ else
 fi
 log_debug "fine" "$OUTPUT" 
 
-# Write the WebDAV configuration to the config file
-WEBDAV_CONFIG_PATH="/data/internxt/config.webdav.inxt"
-
 log_debug "debug" "Writing WebDAV configuration to $WEBDAV_CONFIG_PATH..."
-mkdir -p "$(dirname "$WEBDAV_CONFIG_PATH")"  # Ensure the directory exists
-
 # Create JSON configuration for WebDAV
 if [ "$INTERNXT_HTTPS" = "true" ]; then
     echo "{\"port\":\"$INTERNXT_WEB_PORT\",\"protocol\":\"https\"}" > "$WEBDAV_CONFIG_PATH"
 else
     echo "{\"port\":\"$INTERNXT_WEB_PORT\",\"protocol\":\"http\"}" > "$WEBDAV_CONFIG_PATH"
 fi
-
 log_debug "fine" "WebDAV configuration written."
 
 # Enable WebDAV
