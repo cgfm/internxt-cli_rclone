@@ -70,10 +70,14 @@ if [ -f "$WORKING_JSON" ]; then
         local_path=$(echo "$command_obj" | jq -r '.local_path // empty')
         remote_path=$(echo "$command_obj" | jq -r '.remote_path // empty')
 
+        if [[ "$command" == "rclone"* ]]; then
+            command_flags+=" --log-file=$RCLONE_LOG_FILE --log-format=date,time,UTC --config=${RCLONE_CONFIG}"
+        fi
+
         # If local path and remote path are set, include them
         if [[ -n "$local_path" && -n "$remote_path" ]]; then
             log_debug "info" "Running command: $command $local_path $remote_path $command_flags"
-            eval "$command $local_path $remote_path $command_flags --log-file=$RCLONE_LOG_FILE --log-format=date,time,UTC"
+            eval "$command $local_path $remote_path $command_flags"
         elif [[ -n "$command" ]]; then
             # If only command is present, run it with flags
             log_debug "info"  "Running command: $command $command_flags"
