@@ -43,9 +43,9 @@ jobs:
                 PATCH=${BASH_REMATCH[3]}
                 PRE_RELEASE=${BASH_REMATCH[4]}
                 
-                if [ "$PRE_RELEASE" == "" ] && [ "$BRANCH_NAME" != "main" ]; then
+                if [ "$BRANCH_NAME" != "main" ]; then
                   PRE_RELEASE="_$BRANCH_NAME"
-                elif [ "$BRANCH_NAME" != "main" ]; then
+                else
                   PRE_RELEASE=""
                 fi
   
