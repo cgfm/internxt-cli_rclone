@@ -7,16 +7,6 @@ CRON_LOG_FILE="/logs/cron.log"
 WORKING_JSON="/working/config.json"
 schedule_index="$1"
 
-if [ -f "$WORKING_JSON" ]; then
-    # Extract log level
-    LOG_LEVEL=$(jq -r '.settings.log.level' "$WORKING_JSON")
-    log_debug "info" "Loaded LOG_LEVEL: $LOG_LEVEL"
-fi
-
-if [ -z "$LOG_LEVEL" ]; then
-    LOG_LEVEL="info"
-fi
-
 # Function to return debug messages based on the debug level
 log_debug() {
     local level="$1"
@@ -35,6 +25,16 @@ log_debug() {
     # Log to file
     echo -e "$(date '+%Y-%m-%d %H:%M:%S') $message" | tee "$CRON_LOG_FILE"
 }
+
+if [ -f "$WORKING_JSON" ]; then
+    # Extract log level
+    LOG_LEVEL=$(jq -r '.settings.log.level' "$WORKING_JSON")
+    log_debug "info" "Loaded LOG_LEVEL: $LOG_LEVEL"
+fi
+
+if [ -z "$LOG_LEVEL" ]; then
+    LOG_LEVEL="info"
+fi
 
 # Set RCLONE_CONFIG if not set
 if [ -z "$RCLONE_CONFIG" ]; then
