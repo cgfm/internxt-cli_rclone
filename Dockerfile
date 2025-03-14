@@ -53,7 +53,7 @@ VOLUME [ "/config" ]
 VOLUME [ "/logs" ]
 
 # Only needed if SFTP with key is used
-VOLUME [ "/root/.ssh" ]
+#VOLUME [ "/root/.ssh" ]
 
 # Add a health check that checks if the Internxt CLI is functioning
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
