@@ -9,55 +9,21 @@ log_debug() {
 
     # Check if LOG_LEVEL
     if [ "$LOG_LEVEL" = "fine" ] && [ "$level" = "fine" ]; then
-        echo "[FINE]: $message"
+        message="[FINE]: $message"
     elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ]) && [ "$level" = "debug" ]; then
-        echo "[DEBUG]: $message"
+        message="[DEBUG]: $message"
     elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ])  && [ "$level" = "info" ]; then
-        echo "[INFO]: $message"
+        message="[INFO]: $message"
     elif ([ "$LOG_LEVEL" = "fine" ] || [ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ] || [ "$LOG_LEVEL" = "error" ]) && [ "$level" = "error" ]; then
-        echo "[ERROR]: $message"
+        message="[ERROR]: $message"
     fi
+    # Log to file
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') $message"
 }
 
-# Check if the initialization has been done
-if [ ! -f /data/init_done ]; then
-    log_debug "info" "First run: copying contents from /root/.internxt-cli to /data..."
-
-    # Copy contents from /root/.internxt-cli to /data
-    cp -r /root/.internxt-cli/* /data/
-    rm -r /root/.internxt-cli
-    mv /data/logs /config/log/internxt
-    
-    # Create a symbolic link for /root/.internxt-cli to /data
-    ln -s /config/log/internxt /data/logs
-    
-    # Create the init_done file to mark that initialization is complete
-    touch /data/init_done
-else
-    log_debug "debug" "Initialization already done. Skipping copy from /root/.internxt-cli to /data."
-fi
-# Create a symbolic link for /root/.internxt-cli to /data
-[ -d "/root/.internxt-cli" ] &&  rm -r /root/.internxt-cli
-ln -s /data /root/.internxt-cli
-
-# Check if STOPATSTART mode is enabled
-if [ "$STOPATSTART" = "true" ]; then
-    log_debug "info" "STOPATSTART mode is enabled."
-    tail -f /dev/null  # Keep the script running indefinitely
-fi
-
-# Array of log files to rotate
-LOCAL_LOG_FILES=(
-    "/config/log/cron.log"
-    "/config/log/rclone.log"
-    "/config/log/internxt/internxt-cli-error.log"
-    "/config/log/internxt/internxt-webdav-error.log"
-    "/config/log/internxt/internxt-cli-combined.log"
-    "/config/log/internxt/internxt-webdav-combined.log"
-)
-
-# Rotate logs
-for log_file in "${LOCAL_LOG_FILES[@]}"; do
+# Rotate logs to prevent them from growing indefinitely
+rotate_logs() {
+    log_file="$1"
     log_debug "fine" "Rotating log file: $log_file"
     if [ -f "$log_file" ]; then
         max_log_files=${LOG_FILE_COUNT:-3} # Default to 3 if LOG_FILE_COUNT is not set
@@ -73,9 +39,10 @@ for log_file in "${LOCAL_LOG_FILES[@]}"; do
                     fi
                 fi
             done
+            max_log_files+=1  # Increment to get the next log file number
         fi
         # Increment all existing log numbers starting from the highest
-        for ((i=max_log_files; i>0; i--)); do
+        for ((i=max_log_files-1; i>0; i--)); do
             if [ -f "$log_file.$i" ]; then
                 mv "$log_file.$i" "$log_file.$((i + 1))" 2>/dev/null || true
             fi
@@ -86,8 +53,10 @@ for log_file in "${LOCAL_LOG_FILES[@]}"; do
         # Create a new log file
     fi
     touch "$log_file"
-done
-log_debug "debug" "Log files rotated. New log files created."
+}
+
+# Write the WebDAV configuration to the config file
+WEBDAV_CONFIG_PATH="/data/internxt/config.webdav.inxt"
 
 # Define expected environment variables and their corresponding JSON keys
 declare -A env_var_map=(
@@ -112,8 +81,8 @@ declare -A env_var_map=(
     ["CRON_SCHEDULE"]="cron.schedule"
     ["LOG_FILE_COUNT"]="log.file_count"
     ["LOG_LEVEL"]="log.level"
+    ["LOG_MAX_LOG_SIZE"]="log.max_log_size"
     ["ROOT_CA"]="root_ca"
-    ["TZ"]="timezone"
 )
 
 # If no CONFIG_FILE is provided, check for the default location
@@ -121,22 +90,94 @@ if [ -z "$CONFIG_FILE" ] && [ -f "/config/config.json" ]; then
     CONFIG_FILE="/config/config.json"
 fi
 
+# Create a working copy of the JSON configuration if CONFIG_FILE is set
+WORKING_JSON="/working/config.json"
+
+# Array of log files to rotate
+LOCAL_LOG_FILES=(
+    "/logs/cron.log"
+    "/logs/rclone.log"
+    "/logs/internxt/internxt-cli-error.log"
+    "/logs/internxt/internxt-webdav-error.log"
+    "/logs/internxt/internxt-cli-combined.log"
+    "/logs/internxt/internxt-webdav-combined.log"
+)
+
+touch /logs/cron.log /logs/rclone.log
+
+# Create directories if they do not exist
+mkdir -p /data/internxt/certs /data/rclone /logs/internxt /working
+mkdir -p "$(dirname "$WEBDAV_CONFIG_PATH")"  # Ensure the directory exists
+
+# Check if the initialization has been done
+if [ ! -f /data/init_done ]; then
+    log_debug "info" "First run: copying contents from /root/.internxt-cli to /data/internxt and /logs/internxt..."
+
+    # Copy contents from /root/.internxt-cli to /data
+    cp -r /root/.internxt-cli/* /data/internxt
+    mv /data/internxt/logs /logs/internxt
+    
+    ln -s /logs/internxt /data/internxt/logs
+    
+    # Create the init_done file to mark that initialization is complete
+    touch /data/init_done
+else
+    log_debug "debug" "Initialization already done. Skipping copy from /root/.internxt-cli to /data/internxt and /root/.cache/rclone to /data/rclone."
+fi
+
+# Create a symbolic link for /root/.internxt-cli to /data/internxt
+rm -rf /root/.internxt-cli
+ln -sf /data/internxt /root/.internxt-cli
+# Create a symbolic link for /root/.cache/rclone to /data/rclone
+rm -rf /root/.cache/rclone
+ln -sf /data/rclone /root/.cache/rclone
+
+# Check if STOPATSTART mode is enabled
+if [ "$STOPATSTART" = "true" ]; then
+    log_debug "info" "STOPATSTART mode is enabled."
+    tail -f /dev/null  # Keep the script running indefinitely
+fi
+
+max_log_size=${LOG_MAX_LOG_SIZE:-10485760}
+
+# Check the size of the log file only if LOG_MAX_LOG_SIZE is set
+if [ "$max_log_size" -le 0 ]; then
+    # Rotate logs
+    for log_file in "${LOCAL_LOG_FILES[@]}"; do
+        rotate_logs "$log_file"
+    done
+    log_debug "debug" "Log files rotated. New log files created."
+fi
+
+# Check if a configuration file is provided
+if [ -n "$CONFIG_FILE" ] && [ -f "$CONFIG_FILE" ]; then
+    # Remove existing copy if it exists
+    [ -f "$WORKING_JSON" ] && rm "$WORKING_JSON"
+
+    # Create a copy of the given JSON configuration
+    cp "$CONFIG_FILE" "$WORKING_JSON"
+    log_debug "info" "Copied configuration from $CONFIG_FILE to $WORKING_JSON"
+else
+    log_debug "info" "Initialize with an empty JSON structure. No config file is provided"
+    echo "{\"cron_jobs\": [], \"settings\": {}}" > "$WORKING_JSON"  # Initialize with an empty structure
+fi
+
 # Load the JSON file to check if the keys are defined
-if [ -f "$CONFIG_FILE" ]; then
-    log_debug "fine" "Found config file at $CONFIG_FILE."
+if [ -f "$WORKING_JSON" ]; then
+    log_debug "fine" "Found config file at $WORKING_JSON."
     # Iterate over the environment variable map
     for env_var in "${!env_var_map[@]}"; do
         json_key=${env_var_map[$env_var]}
         
-        # Check if the JSON key exists in the CONFIG_FILE
-        if jq -e ".settings | .${json_key} != null" "$CONFIG_FILE" > /dev/null; then
+        # Check if the JSON key exists in the WORKING_JSON
+        if jq -e ".settings | .${json_key} != null" "$WORKING_JSON" > /dev/null; then
             log_debug "fine" "Searching for $json_key."
 
             # If the environment variable is not set, set it from the JSON value
             if [ -z "${!env_var}" ]; then
-                value=$(jq -r ".settings.${json_key}" "$CONFIG_FILE")
+                value=$(jq -r ".settings.${json_key}" "$WORKING_JSON")
                 
-                log_debug "fine" "$json_key with value '$value' found in $CONFIG_FILE."
+                log_debug "fine" "$json_key with value '$value' found in $WORKING_JSON."
                 # Check if the value is not empty before exporting
                 if [ -n "$value" ]; then
                     export "$env_var=$value"
@@ -146,15 +187,26 @@ if [ -f "$CONFIG_FILE" ]; then
                 fi
             else
                 log_debug "debug" "$env_var already set. Ignoring $json_key."
+                
+                # If the environment variable is set, add it to the WORKING_JSON
+                existing_value="${!env_var}"
+                
+                # Update existing settings in WORKING_JSON
+                jq --arg key "$json_key" --arg value "$existing_value" \
+                    '.settings[$key] = $value' "$WORKING_JSON" > tmp.$$.json && mv tmp.$$.json "$WORKING_JSON"
+
+                log_debug "debug" "Added existing environment variable to JSON: $env_var with value: $existing_value"
             fi
         else
-            log_debug "fine" "$json_key not found in $CONFIG_FILE."
+            log_debug "fine" "$json_key not found in $WORKING_JSON."
         fi
     done
-    log_debug "info" "Config file \"$CONFIG_FILE\" processed."
+    log_debug "info" "Config file \"$WORKING_JSON\" processed."
 else
-    log_debug "debug" "Config file not found at $CONFIG_FILE."
+    log_debug "debug" "Config file not found at $WORKING_JSON."
 fi
+
+export PHP_TZ="$TZ"
 
 # Ensure required environment variables are set
 if [ -z "$INTERNXT_EMAIL" ] || [ -z "$INTERNXT_PASSWORD" ]; then
@@ -170,7 +222,7 @@ if [ -n "$INTERNXT_SSL_CERT" ] && [ -n "$INTERNXT_SSL_KEY" ]; then
     if [ -f "$INTERNXT_SSL_CERT" ]; then
         # Create a symbolic link for the SSL certificate if it does not point to the default location
         if [ "$INTERNXT_SSL_CERT" != "/root/.internxt-cli/certs/cert.crt" ] && [ "$INTERNXT_SSL_CERT" != "/config/internxt/certs/cert.crt" ]; then
-            ln -sf "$INTERNXT_SSL_CERT" /root/.internxt-cli/certs/cert.crt
+            ln -sf "$INTERNXT_SSL_CERT" /data/internxt/certs/cert.crt
             log_debug "debug" "Linked SSL certificate: $INTERNXT_SSL_CERT"
         fi
     else
@@ -181,7 +233,7 @@ if [ -n "$INTERNXT_SSL_CERT" ] && [ -n "$INTERNXT_SSL_KEY" ]; then
     if [ -f "$INTERNXT_SSL_KEY" ]; then
         # Create a symbolic link for the SSL key if it does not point to the default location
         if [ "$INTERNXT_SSL_KEY" != "/root/.internxt-cli/certs/priv.key" ] && [ "$INTERNXT_SSL_KEY" != "/config/internxt/certs/priv.key" ]; then
-            ln -sf "$INTERNXT_SSL_KEY" /root/.internxt-cli/certs/priv.key
+            ln -sf "$INTERNXT_SSL_KEY" /data/internxt/certs/priv.key
             log_debug "debug" "Linked SSL key: $INTERNXT_SSL_KEY"
         fi
     else
@@ -202,9 +254,6 @@ if [ -n "$ROOT_CA" ]; then
     fi
 fi
 
-# Create log directory if it doesn't exist
-mkdir -p "/config/log/"
-
 # Set RCLONE_CONFIG if not set
 if [ -z "$RCLONE_CONFIG" ]; then
     RCLONE_CONFIG="/config/rclone.conf"
@@ -224,7 +273,6 @@ fi
 # Debug message for protocol
 log_debug "debug" "Using protocol: $PROTOCOL"
 
-
 # Configure rclone to use the Internxt WebDAV server
 log_debug "debug" "Configuring rclone internxt webdav remote with $PROTOCOL..."
 if rclone config create Internxt webdav \
@@ -235,8 +283,7 @@ if rclone config create Internxt webdav \
     --config "${RCLONE_CONFIG}" >/dev/null 2>&1; then
     log_debug "info" "Configured rclone internxt webdav remote."
     
-    declare -a cont_rclone_config=($(< $RCLONE_CONFIG))
-    log_debug "fine" "Rclone config:\n${cont_rclone_config[@]}"
+    log_debug "fine" "Rclone config:\n$(< $RCLONE_CONFIG)"
 else
     # Exit if the configuration fails
     log_debug "error" "Failed to configure rclone internxt webdav remote."
@@ -270,13 +317,14 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
         --rc-web-gui-update \
         --rc-addr :$RCLONE_WEB_GUI_PORT \
         --config $RCLONE_CONFIG \
-        --log-file /config/log/rclone.log \
+        --log-file /logs/rclone.log \
         --log-format date,time,UTC \
         $RCLONE_WEB_GUI_EXTRA_PARAMS"
     
     log_debug "debug" "Starting rclone with command:\n$rclone_command"
     eval "$rclone_command &"  # Execute the rclone command in the background
 fi
+
 OUTPUT=""
 # Handle TOTP for two-factor authentication
 if [ -n "$INTERNXT_TOTP" ]; then
@@ -290,19 +338,13 @@ else
 fi
 log_debug "fine" "$OUTPUT" 
 
-# Write the WebDAV configuration to the config file
-WEBDAV_CONFIG_PATH="/data/config.webdav.inxt"
-
 log_debug "debug" "Writing WebDAV configuration to $WEBDAV_CONFIG_PATH..."
-mkdir -p "$(dirname "$WEBDAV_CONFIG_PATH")"  # Ensure the directory exists
-
 # Create JSON configuration for WebDAV
 if [ "$INTERNXT_HTTPS" = "true" ]; then
     echo "{\"port\":\"$INTERNXT_WEB_PORT\",\"protocol\":\"https\"}" > "$WEBDAV_CONFIG_PATH"
 else
     echo "{\"port\":\"$INTERNXT_WEB_PORT\",\"protocol\":\"http\"}" > "$WEBDAV_CONFIG_PATH"
 fi
-
 log_debug "fine" "WebDAV configuration written."
 
 # Enable WebDAV
@@ -331,23 +373,6 @@ fi
 
 if [ -z "$CRON_COMMAND_FLAGS" ]; then
     CRON_COMMAND_FLAGS="--create-empty-src-dirs --retries 5 --verbose"  # Default flags
-fi
-
-# Create a working copy of the JSON configuration if CONFIG_FILE is set
-WORKING_JSON="/working/config.json"
-mkdir -p /working  # Create the working directory
-
-# Check if a configuration file is provided
-if [ -n "$CONFIG_FILE" ] && [ -f "$CONFIG_FILE" ]; then
-    # Remove existing copy if it exists
-    [ -f "$WORKING_JSON" ] && rm "$WORKING_JSON"
-
-    # Create a copy of the given JSON configuration
-    cp "$CONFIG_FILE" "$WORKING_JSON"
-    log_debug "debug" "Copied configuration from $CONFIG_FILE to $WORKING_JSON"
-else
-    log_debug "debug" "Initialize with an empty JSON structure. No config file is provided"
-    echo "{\"cron_jobs\": []}" > "$WORKING_JSON"  # Initialize with an empty structure
 fi
 
 # Check if cron_jobs key exists and initialize it if not
@@ -426,19 +451,19 @@ for i in {1..20}; do
     fi
 done
 
-declare -a cont_working_json=($(< $WORKING_JSON))
-log_debug "fine" "Working JSON created:\n${cont_working_json[@]%$'\r'}"
+log_debug "fine" "Working JSON created:\n$(jq --indent 2 . "$WORKING_JSON")"
 
 if [ -f "$WORKING_JSON" ]; then
     # Iterate over each job in the JSON file
-    total_jobs=$(jq '.cron_jobs | length' "$WORKING_JSON")
+    total_schedules=$(jq '.cron_jobs | length' "$WORKING_JSON")
     # Start cron jobs based on the schedules in the JSON file
-    if [ "$total_jobs" -gt 0 ]; then
+    if [ "$total_schedules" -gt 0 ]; then
         # Initialize crontab if it doesn't exist
+        [ -f "/var/spool/cron/root" ] && rm /var/spool/cron/root
         touch /var/spool/cron/root
 
         # Iterate over each job in the JSON file
-        for ((i=0; i<total_jobs; i++)); do
+        for ((i=0; i<total_schedules; i++)); do
             # Extract the schedule for the current job
             schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
             # Register the cron job in crontab
@@ -454,9 +479,8 @@ if [ -f "$WORKING_JSON" ]; then
         else
             log_debug "info" "Cron service started."
         fi
-                
-        declare -a cont_cron_file=($(< /var/spool/cron/root))
-        log_debug "fine" "Cron jobs created created:\n${cont_cron_file[@]%$'\r'}"
+        
+        log_debug "fine" "Cron jobs created created:\n$(< /var/spool/cron/root)"
     fi
 fi
 
@@ -472,35 +496,61 @@ echo " "
 tail_with_prefix() {
     local log_file="$1"
     local prefix="$2"
-    local isJSON="$3"
 
     tail -f "$log_file" | while read -r line; do
-        if [ "$isJSON" = "true" ]; then
-            # If the line is JSON, parse it and extract the desired fields
-            timestamp=$(echo "$line" | jq -r '.timestamp')
-            level=$(echo "$line" | jq -r '.level' | tr '[:lower:]' '[:upper:]')
-            service=$(echo "$line" | jq -r '.service')
-            message=$(echo "$line" | jq -r '.message')
-            echo "[$prefix] $timestamp $level $service $message"
-        else
-            # If the line is not JSON, it is from rclone
-            echo "[$prefix] $line"
+        
+        if [[ "$line" == "tail: '$log_file'"* ]]; then
+            continue
         fi
-    done
+
+        # Prompt the line to the log file only if onlyCheckSize is not true
+        if [ "$onlyCheckSize" != "true" ]; then
+            # If the line is JSON, parse it and extract the desired fields
+            if echo "$line" | jq . >/dev/null 2>&1; then
+                timestamp=$(echo "$line" | jq -r '.timestamp')
+                level=$(echo "$line" | jq -r '.level' | tr '[:lower:]' '[:upper:]')
+                service=$(echo "$line" | jq -r '.service')
+                message=$(echo "$line" | jq -r '.message')
+                echo "[$prefix] $timestamp $level $service $message"
+            else
+                # If the line is not JSON, it is from rclone
+                echo "[$prefix] $line"
+            fi
+        fi
+    done || {
+        log_debug "error" "An unexpected error occurred while tailing the log file: $log_file"
+        return 1  # Exit with an error status if the tailing process fails
+    }
 }
 
 # Start tailing multiple log files in parallel
-{
-    tail_with_prefix "/config/log/cron.log" "cron" false &  # Tail cron log
-    tail_with_prefix "/config/log/rclone.log" "rclone" false &  # Tail rclone log
-    tail_with_prefix "/config/log/internxt/internxt-cli-error.log" "internxt" true &  # Tail internxt error log
-    tail_with_prefix "/config/log/internxt/internxt-webdav-error.log" "internxt" true &  # Tail internxt webdav error log
-    if [ "$LOG_LEVEL" = "fine" ]; then
-        tail_with_prefix "/config/log/internxt/internxt-cli-combined.log" "internxt" true &  # Tail internxt combined log
-        tail_with_prefix "/config/log/internxt/internxt-webdav-combined.log" "internxt" true &  # Tail internxt webdav combined log
-    fi
-    wait  # Wait for all background processes to finish
-}
+for log_file in "${LOCAL_LOG_FILES[@]}"; do
+    prefix=$(basename "$log_file" | sed 's/[\.-].*$//')  # Extract prefix from filename
 
+    # Decide whether to start tailing based on the log level
+    if [[ "$LOG_LEVEL" = "fine" || ! "$log_file" =~ combined\.log$ || ! "$log_file" =~ internxt ]]; then
+        tail_with_prefix "$log_file" "$prefix" &  # Tail log file with prefix
+    else
+        log_debug "info" "Skipping logging for $log_file as the log level is not 'fine'."
+    fi
+done
+
+max_log_size=${LOG_MAX_LOG_SIZE:-10485760}
+
+while true; do
+    # Check the size of the log file only if LOG_MAX_LOG_SIZE is set
+    if [ "$max_log_size" -gt 0 ]; then
+        for log_file in "${LOCAL_LOG_FILES[@]}"; do
+            # Check the size of the log file
+            current_size=$(stat -c%s "$log_file")
+
+            # Rotate the log file if current size exceeds max size
+            if [ "$current_size" -gt "$max_log_size" ]; then
+               rotate_logs "$log_file"
+            fi
+       done
+    fi
+    sleep 60  # Adjust the sleep time as needed
+done &
 # Wait indefinitely to keep the script running
 wait
