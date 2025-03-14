@@ -46,6 +46,8 @@ jobs:
                 if [ "$BRANCH_NAME" != "main" ] || [ -z "$PRE_RELEASE" ]; then
                   # Increment the patch version
                   NEW_PATCH=$((PATCH + 1))
+                else
+                  NEW_PATCH=$PATCH
                 fi
 
                 if [ "$BRANCH_NAME" != "main" ]; then
