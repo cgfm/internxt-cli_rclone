@@ -27,13 +27,20 @@ log_debug() {
 }
 
 if [ -f "$WORKING_JSON" ]; then
-    # Extract log level
-    LOG_LEVEL=$(jq -r '.settings.log.level' "$WORKING_JSON")
-    log_debug "debug" "Loaded LOG_LEVEL: $LOG_LEVEL"
-    RCLONE_CONFIG=$(jq -r '.settings.rclone.config' "$WORKING_JSON")
-    log_debug "debug" "Loaded RCLONE_CONFIG: $RCLONE_CONFIG"
+    # Extract LOG_LEVEL
+    if [ -z "$LOG_LEVEL" ]; then
+        LOG_LEVEL=$(jq -r '.settings.log.level' "$WORKING_JSON")
+        log_debug "debug" "Loaded LOG_LEVEL: $LOG_LEVEL"
+    fi
+    
+    # Extract RCLONE_CONFIG
+    if [ -z "$RCLONE_CONFIG" ]; then
+        RCLONE_CONFIG=$(jq -r '.settings.rclone.config' "$WORKING_JSON")
+        log_debug "debug" "Loaded RCLONE_CONFIG: $RCLONE_CONFIG"
+    fi
 fi
 
+# Set LOG_LEVEL if not set
 if [ -z "$LOG_LEVEL" ] || [ "$LOG_LEVEL" == "null" ]; then
     LOG_LEVEL="info"
 fi
