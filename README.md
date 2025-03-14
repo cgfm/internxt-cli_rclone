@@ -101,6 +101,7 @@ services:
       - /local/logs/dir:/logs
     restart: unless-stopped
 ```
+
 ## Directory Structure: `/config`, `/data` and `/logs`
 
 ### Overview
