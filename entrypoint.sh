@@ -103,6 +103,8 @@ LOCAL_LOG_FILES=(
     "/logs/internxt/internxt-webdav-combined.log"
 )
 
+touch /logs/cron.log /logs/rclone.log
+
 # Create directories if they do not exist
 mkdir -p /data/internxt/certs /data/rclone /logs/internxt /working
 mkdir -p "$(dirname "$WEBDAV_CONFIG_PATH")"  # Ensure the directory exists

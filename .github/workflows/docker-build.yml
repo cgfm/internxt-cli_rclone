@@ -4,19 +4,23 @@ on:
   workflow_dispatch:
     inputs:
       new_version:
-        description: 'New release version (optional)'
+        description: "Create a new release version."
+        type: boolean
         required: false
-  
-#  push:
-#    paths-ignore:
-#      - README.md  # Ignore changes to README.md
-#      - .git/**
-#      - .github/**
+        default: false
+      new_version_name:
+        description: 'Overwrite release version name (optional)'
+        required: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -38,45 +42,52 @@ jobs:
           echo "Branch name is $BRANCH_NAME" 
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
-      - name: Get the latest release
-        id: get_release
-        run: |
-          # Get the latest release tag
-          LATEST_TAG=$(git fetch --tags && git tag -l --sort=-creatordate | head -n 1)
-          echo "Latest release tag: $LATEST_TAG"
+          - name: Get the latest release
+          id: get_release
+          run: |
+            if [ "${{ github.event.inputs.new_version_name }}" == "" ]; then
+            # Get the latest release tag
+            LATEST_TAG=$(git fetch --tags && git tag -l --sort=-creatordate | head -n 1)
+            echo "Latest release tag: $LATEST_TAG"
+  
+            # Extract major, minor, patch and pre-release
+            if [[ $LATEST_TAG =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)([-_ ].*)?$ ]]; then
+                MAJOR=${BASH_REMATCH[1]}
+                MINOR=${BASH_REMATCH[2]}
+                PATCH=${BASH_REMATCH[3]}
+                PRE_RELEASE=${BASH_REMATCH[4]}
+                
+                if [ "$PRE_RELEASE" == "" ] && [ "$BRANCH_NAME" != "main" ]; then
+                  PRE_RELEASE="_$BRANCH_NAME"
+                fi
+  
+                # Increment the patch version
+                NEW_PATCH=$((PATCH + 1))
+                if [[ -n "$PRE_RELEASE" ]]; then
+                  NEW_TAG="$MAJOR.$MINOR.$NEW_PATCH$PRE_RELEASE"
+                else
+                  NEW_TAG="$MAJOR.$MINOR.$NEW_PATCH"
+                fi
+                
+                echo "New release tag: $NEW_TAG"
+                echo "new_tag=$NEW_TAG" >> $GITHUB_ENV
+            else
+                echo "Error: Latest tag format is invalid."
+                exit 1
+            else
+                echo "new_tag=${{ github.event.inputs.new_version_name }}" >> $GITHUB_ENV
+            fi
 
-          # Extract major, minor, patch and pre-release
-          if [[ $LATEST_TAG =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)([-_ ].*)?$ ]]; then
-              MAJOR=${BASH_REMATCH[1]}
-              MINOR=${BASH_REMATCH[2]}
-              PATCH=${BASH_REMATCH[3]}
-              PRE_RELEASE=${BASH_REMATCH[4]}
-              
-              # Increment the patch version
-              NEW_PATCH=$((PATCH + 1))
-              if [[ -n "$PRE_RELEASE" ]]; then
-                NEW_TAG="$MAJOR.$MINOR.$NEW_PATCH$PRE_RELEASE"
-              else
-                NEW_TAG="$MAJOR.$MINOR.$NEW_PATCH"
-              fi
-              
-              echo "New release tag: $NEW_TAG"
-              echo "new_tag=$NEW_TAG" >> $GITHUB_ENV
-          else
-              echo "Error: Latest tag format is invalid."
-              exit 1
-          fi
-          
       - name: Create Release
         id: create_release
         run: |
-          SANITIZED_NEW_VERSION="${{ github.event.inputs.new_version }}"
-          SANITIZED_NEW_VERSION="${SANITIZED_NEW_VERSION// /_}"  # Replace spaces with underscores
+          SANITIZED_NEW_VERSION_NAME="${{ github.event.inputs.new_version_name }}"
+          SANITIZED_NEW_VERSION_NAME="${SANITIZED_NEW_VERSION_NAME// /_}"  # Replace spaces with underscores
 
-          if [ -n "$SANITIZED_NEW_VERSION" ]; then
-            echo "Creating new release: ${{ github.event.inputs.new_version }}"
+          if [ -n "$SANITIZED_NEW_VERSION_NAME" ]; then
+            echo "Creating new release: ${{ github.event.inputs.new_version_name }}"
             echo "${{ secrets.GH_TOKEN }}" | gh auth login --with-token
-            gh release create "$SANITIZED_NEW_VERSION" --target "$BRANCH_NAME"
+            gh release create "$SANITIZED_NEW_VERSION_NAME" --target "$BRANCH_NAME" 
           else
             echo "Release creation skipped."
           fi
@@ -84,8 +95,8 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           # Sanitize the new version by replacing spaces with underscores
-          SANITIZED_NEW_VERSION="${{ github.event.inputs.new_version }}"
-          SANITIZED_NEW_VERSION="${SANITIZED_NEW_VERSION// /_}"  # Replace spaces with underscores
+          SANITIZED_NEW_VERSION_NAME="${{ github.event.inputs.new_version_name }}"
+          SANITIZED_NEW_VERSION_NAME="${SANITIZED_NEW_VERSION_NAME// /_}"  # Replace spaces with underscores
 
           if [ "$BRANCH_NAME" == "main" ]; then
             IMAGE_TAG="cgfm/internxt-cli_rclone:latest"
@@ -102,8 +113,8 @@ jobs:
           docker push $IMAGE_TAG
 
           # If new version is provided, tag with the new version as well
-          if [ -n "$SANITIZED_NEW_VERSION" ]; then
-            NEW_IMAGE_TAG="cgfm/internxt-cli_rclone:$SANITIZED_NEW_VERSION"
+          if [ -n "$SANITIZED_NEW_VERSION_NAME" ]; then
+            NEW_IMAGE_TAG="cgfm/internxt-cli_rclone:$SANITIZED_NEW_VERSION_NAME"
             echo "Tagging image with new version: $NEW_IMAGE_TAG"
             docker tag $IMAGE_TAG $NEW_IMAGE_TAG
             docker push $NEW_IMAGE_TAG
