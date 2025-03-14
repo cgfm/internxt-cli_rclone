@@ -34,22 +34,14 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}  # Docker Hub username stored as a secret
           password: ${{ secrets.DOCKER_PASSWORD }}  # Docker Hub password stored as a secret
 
-      - name: Set Branch Name
-        id: set_branch_name
+      - name: Get the latest release
+        id: get_release
         run: |
-          # Get the branch name from the context
-          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          echo "Branch name is $BRANCH_NAME" 
-          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-
-          - name: Get the latest release
-          id: get_release
-          run: |
-            if [ "${{ github.event.inputs.new_version_name }}" == "" ]; then
+          if [ "${{ github.event.inputs.new_version_name }}" == "" ]; then
             # Get the latest release tag
             LATEST_TAG=$(git fetch --tags && git tag -l --sort=-creatordate | head -n 1)
             echo "Latest release tag: $LATEST_TAG"
-  
+
             # Extract major, minor, patch and pre-release
             if [[ $LATEST_TAG =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)([-_ ].*)?$ ]]; then
                 MAJOR=${BASH_REMATCH[1]}
@@ -57,47 +49,50 @@ jobs:
                 PATCH=${BASH_REMATCH[3]}
                 PRE_RELEASE=${BASH_REMATCH[4]}
                 
-                if [ "$PRE_RELEASE" == "" ] && [ "$BRANCH_NAME" != "main" ]; then
-                  PRE_RELEASE="_$BRANCH_NAME"
+                if [ "$BRANCH_NAME" != "main" ] || [ -z "$PRE_RELEASE" ]; then
+                  # Increment the patch version
+                  NEW_PATCH=$((PATCH + 1))
+                else
+                  NEW_PATCH=$PATCH
                 fi
-  
-                # Increment the patch version
-                NEW_PATCH=$((PATCH + 1))
+
+                if [ "$BRANCH_NAME" != "main" ]; then
+                  PRE_RELEASE="_$BRANCH_NAME"
+                else
+                  PRE_RELEASE=""
+                fi
+
                 if [[ -n "$PRE_RELEASE" ]]; then
                   NEW_TAG="$MAJOR.$MINOR.$NEW_PATCH$PRE_RELEASE"
                 else
                   NEW_TAG="$MAJOR.$MINOR.$NEW_PATCH"
                 fi
-                
+
+                NEW_TAG="${NEW_TAG// /_}"
+
                 echo "New release tag: $NEW_TAG"
                 echo "new_tag=$NEW_TAG" >> $GITHUB_ENV
             else
                 echo "Error: Latest tag format is invalid."
                 exit 1
-            else
-                echo "new_tag=${{ github.event.inputs.new_version_name }}" >> $GITHUB_ENV
             fi
-
+          else
+              echo "new_tag=${{ github.event.inputs.new_version_name }}" >> $GITHUB_ENV
+          fi
+  
       - name: Create Release
         id: create_release
         run: |
-          SANITIZED_NEW_VERSION_NAME="${{ github.event.inputs.new_version_name }}"
-          SANITIZED_NEW_VERSION_NAME="${SANITIZED_NEW_VERSION_NAME// /_}"  # Replace spaces with underscores
-
-          if [ -n "$SANITIZED_NEW_VERSION_NAME" ]; then
-            echo "Creating new release: ${{ github.event.inputs.new_version_name }}"
-            echo "${{ secrets.GH_TOKEN }}" | gh auth login --with-token
-            gh release create "$SANITIZED_NEW_VERSION_NAME" --target "$BRANCH_NAME" 
+          if [ "${{ github.event.inputs.new_version }}" == "true" ] &&  [ -n "${{ env.new_tag }}" ]; then
+              echo "Creating new release: ${{ env.new_tag }}""
+              echo "${{ secrets.GH_TOKEN }}" | gh auth login --with-token
+              gh release create "${{ env.new_tag }}" --target "$BRANCH_NAME" 
           else
             echo "Release creation skipped."
           fi
 
       - name: Build and Push Docker Image
         run: |
-          # Sanitize the new version by replacing spaces with underscores
-          SANITIZED_NEW_VERSION_NAME="${{ github.event.inputs.new_version_name }}"
-          SANITIZED_NEW_VERSION_NAME="${SANITIZED_NEW_VERSION_NAME// /_}"  # Replace spaces with underscores
-
           if [ "$BRANCH_NAME" == "main" ]; then
             IMAGE_TAG="cgfm/internxt-cli_rclone:latest"
           else
@@ -113,8 +108,8 @@ jobs:
           docker push $IMAGE_TAG
 
           # If new version is provided, tag with the new version as well
-          if [ -n "$SANITIZED_NEW_VERSION_NAME" ]; then
-            NEW_IMAGE_TAG="cgfm/internxt-cli_rclone:$SANITIZED_NEW_VERSION_NAME"
+          if [ "${{ github.event.inputs.new_version }}" == "true" ] &&  [ -n "${{ env.new_tag }}" ]; then
+            NEW_IMAGE_TAG="cgfm/internxt-cli_rclone:${{ env.new_tag }}"
             echo "Tagging image with new version: $NEW_IMAGE_TAG"
             docker tag $IMAGE_TAG $NEW_IMAGE_TAG
             docker push $NEW_IMAGE_TAG

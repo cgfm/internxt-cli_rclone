@@ -32,34 +32,42 @@ jobs:
         id: get_release
         run: |
           if [ "${{ github.event.inputs.new_version_name }}" == "" ]; then
-          # Get the latest release tag
-          LATEST_TAG=$(git fetch --tags && git tag -l --sort=-creatordate | head -n 1)
-          echo "Latest release tag: $LATEST_TAG"
+            # Get the latest release tag
+            LATEST_TAG=$(git fetch --tags && git tag -l --sort=-creatordate | head -n 1)
+            echo "Latest release tag: $LATEST_TAG"
 
-          # Extract major, minor, patch and pre-release
-          if [[ $LATEST_TAG =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)([-_ ].*)?$ ]]; then
-              MAJOR=${BASH_REMATCH[1]}
-              MINOR=${BASH_REMATCH[2]}
-              PATCH=${BASH_REMATCH[3]}
-              PRE_RELEASE=${BASH_REMATCH[4]}
-              
-              if [ "$PRE_RELEASE" == "" ] && [ "$BRANCH_NAME" != "main" ]; then
-                PRE_RELEASE="_$BRANCH_NAME"
-              fi
+            # Extract major, minor, patch and pre-release
+            if [[ $LATEST_TAG =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)([-_ ].*)?$ ]]; then
+                MAJOR=${BASH_REMATCH[1]}
+                MINOR=${BASH_REMATCH[2]}
+                PATCH=${BASH_REMATCH[3]}
+                PRE_RELEASE=${BASH_REMATCH[4]}
+                
+                if [ "$BRANCH_NAME" != "main" ] || [ -z "$PRE_RELEASE" ]; then
+                  # Increment the patch version
+                  NEW_PATCH=$((PATCH + 1))
+                else
+                  NEW_PATCH=$PATCH
+                fi
 
-              # Increment the patch version
-              NEW_PATCH=$((PATCH + 1))
-              if [[ -n "$PRE_RELEASE" ]]; then
-                NEW_TAG="$MAJOR.$MINOR.$NEW_PATCH$PRE_RELEASE"
-              else
-                NEW_TAG="$MAJOR.$MINOR.$NEW_PATCH"
-              fi
-              
-              echo "New release tag: $NEW_TAG"
-              echo "new_tag=$NEW_TAG" >> $GITHUB_ENV
-          else
-              echo "Error: Latest tag format is invalid."
-              exit 1
+                if [ "$BRANCH_NAME" != "main" ]; then
+                  PRE_RELEASE="_$BRANCH_NAME"
+                else
+                  PRE_RELEASE=""
+                fi
+
+                if [[ -n "$PRE_RELEASE" ]]; then
+                  NEW_TAG="$MAJOR.$MINOR.$NEW_PATCH$PRE_RELEASE"
+                else
+                  NEW_TAG="$MAJOR.$MINOR.$NEW_PATCH"
+                fi
+
+                echo "New release tag: $NEW_TAG"
+                echo "new_tag=$NEW_TAG" >> $GITHUB_ENV
+            else
+                echo "Error: Latest tag format is invalid."
+                exit 1
+            fi
           else
               echo "new_tag=${{ github.event.inputs.new_version_name }}" >> $GITHUB_ENV
           fi
