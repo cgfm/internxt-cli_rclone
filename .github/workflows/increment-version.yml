@@ -45,6 +45,8 @@ jobs:
                 
                 if [ "$PRE_RELEASE" == "" ] && [ "$BRANCH_NAME" != "main" ]; then
                   PRE_RELEASE="_$BRANCH_NAME"
+                elif [ "$BRANCH_NAME" != "main" ]; then
+                  PRE_RELEASE=""
                 fi
   
                 # Increment the patch version
