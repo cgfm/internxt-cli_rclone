@@ -91,10 +91,10 @@ jobs:
       - name: Create Release
         id: create_release
         run: |
-          if [ "${{ github.event.inputs.new_version }}" == "true" ] &&  [ -n "${{ env.new_tag }}" ]; then
-              echo "Creating new release: ${{ env.new_tag }}"
+          if [ "${{ github.event.inputs.new_version }}" == "true" ] &&  [ -n "${{ env.NEW_TAG }}" ]; then
+              echo "Creating new release: ${{ env.NEW_TAG }}"
               echo "${{ secrets.GH_TOKEN }}" | gh auth login --with-token
-              gh release create "${{ env.new_tag }}" --target "$BRANCH_NAME" 
+              gh release create "${{ env.NEW_TAG }}" --target "$BRANCH_NAME" 
           else
             echo "Release creation skipped."
           fi
@@ -116,8 +116,8 @@ jobs:
           docker push $IMAGE_TAG
 
           # If new version is provided, tag with the new version as well
-          if [ "${{ github.event.inputs.new_version }}" == "true" ] &&  [ -n "${{ env.new_tag }}" ]; then
-            NEW_IMAGE_TAG="cgfm/internxt-cli_rclone:${{ env.new_tag }}"
+          if [ "${{ github.event.inputs.new_version }}" == "true" ] &&  [ -n "${{ env.NEW_TAG }}" ]; then
+            NEW_IMAGE_TAG="cgfm/internxt-cli_rclone:${{ env.NEW_TAG }}"
             echo "Tagging image with new version: $NEW_IMAGE_TAG"
             docker tag $IMAGE_TAG $NEW_IMAGE_TAG
             docker push $NEW_IMAGE_TAG
