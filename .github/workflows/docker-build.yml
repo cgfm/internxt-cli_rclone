@@ -20,7 +20,7 @@ jobs:
       contents: read
       issues: write
       pull-requests: write
-      
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -33,6 +33,14 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}  # Docker Hub username stored as a secret
           password: ${{ secrets.DOCKER_PASSWORD }}  # Docker Hub password stored as a secret
+
+      - name: Set Branch Name
+        id: set_branch_name
+        run: |
+          # Get the branch name from the context
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          echo "Branch name is $BRANCH_NAME" 
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
       - name: Get the latest release
         id: get_release
@@ -71,20 +79,20 @@ jobs:
                 NEW_TAG="${NEW_TAG// /_}"
 
                 echo "New release tag: $NEW_TAG"
-                echo "new_tag=$NEW_TAG" >> $GITHUB_ENV
+                echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
             else
                 echo "Error: Latest tag format is invalid."
                 exit 1
             fi
           else
-              echo "new_tag=${{ github.event.inputs.new_version_name }}" >> $GITHUB_ENV
+              echo "NEW_TAG=${{ github.event.inputs.new_version_name }}" >> $GITHUB_ENV
           fi
-  
+
       - name: Create Release
         id: create_release
         run: |
           if [ "${{ github.event.inputs.new_version }}" == "true" ] &&  [ -n "${{ env.new_tag }}" ]; then
-              echo "Creating new release: ${{ env.new_tag }}""
+              echo "Creating new release: ${{ env.new_tag }}"
               echo "${{ secrets.GH_TOKEN }}" | gh auth login --with-token
               gh release create "${{ env.new_tag }}" --target "$BRANCH_NAME" 
           else
