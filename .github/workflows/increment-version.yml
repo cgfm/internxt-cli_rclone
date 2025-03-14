@@ -2,6 +2,15 @@ name: Increment Release Version
 
 on:
   workflow_dispatch:
+    inputs:
+      new_version:
+        description: "Create a new release version."
+        type: boolean
+        required: true
+        default: false
+      new_version_name:
+        description: 'Overwrite release version name (optional)'
+        required: false
 
 jobs:
   increment-version:
@@ -11,9 +20,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Set Branch Name
+        id: set_branch_name
+        run: |
+          # Get the branch name from the context
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          echo "Branch name is $BRANCH_NAME" 
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
       - name: Get the latest release
         id: get_release
         run: |
+          if [ "${{ github.event.inputs.new_version_name }}" == "" ]; then
           # Get the latest release tag
           LATEST_TAG=$(git fetch --tags && git tag -l --sort=-creatordate | head -n 1)
           echo "Latest release tag: $LATEST_TAG"
@@ -25,6 +43,10 @@ jobs:
               PATCH=${BASH_REMATCH[3]}
               PRE_RELEASE=${BASH_REMATCH[4]}
               
+              if [ "$PRE_RELEASE" == "" ] && [ "$BRANCH_NAME" != "main" ]; then
+                PRE_RELEASE="_$BRANCH_NAME"
+              fi
+
               # Increment the patch version
               NEW_PATCH=$((PATCH + 1))
               if [[ -n "$PRE_RELEASE" ]]; then
@@ -38,8 +60,13 @@ jobs:
           else
               echo "Error: Latest tag format is invalid."
               exit 1
+          else
+              echo "new_tag=${{ github.event.inputs.new_version_name }}" >> $GITHUB_ENV
           fi
 
       - name: Output new version tag
         run: |
+          if [ "${{ github.event.inputs.new_version }}" == "true" ]; then
+            echo "Generating new version tag..."
+          fi
           echo "The new version tag will be: ${{ env.new_tag }}"
