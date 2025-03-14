@@ -35,7 +35,7 @@ jobs:
             # Get the latest release tag
             LATEST_TAG=$(git fetch --tags && git tag -l --sort=-creatordate | head -n 1)
             echo "Latest release tag: $LATEST_TAG"
-  
+
             # Extract major, minor, patch and pre-release
             if [[ $LATEST_TAG =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)([-_ ].*)?$ ]]; then
                 MAJOR=${BASH_REMATCH[1]}
@@ -43,20 +43,23 @@ jobs:
                 PATCH=${BASH_REMATCH[3]}
                 PRE_RELEASE=${BASH_REMATCH[4]}
                 
+                if [ "$BRANCH_NAME" != "main" ] || [ -z "$PRE_RELEASE" ]; then
+                  # Increment the patch version
+                  NEW_PATCH=$((PATCH + 1))
+                fi
+
                 if [ "$BRANCH_NAME" != "main" ]; then
                   PRE_RELEASE="_$BRANCH_NAME"
                 else
                   PRE_RELEASE=""
                 fi
-  
-                # Increment the patch version
-                NEW_PATCH=$((PATCH + 1))
+
                 if [[ -n "$PRE_RELEASE" ]]; then
                   NEW_TAG="$MAJOR.$MINOR.$NEW_PATCH$PRE_RELEASE"
                 else
                   NEW_TAG="$MAJOR.$MINOR.$NEW_PATCH"
                 fi
-                
+
                 echo "New release tag: $NEW_TAG"
                 echo "new_tag=$NEW_TAG" >> $GITHUB_ENV
             else
