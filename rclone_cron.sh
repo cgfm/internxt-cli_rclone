@@ -29,15 +29,17 @@ log_debug() {
 if [ -f "$WORKING_JSON" ]; then
     # Extract log level
     LOG_LEVEL=$(jq -r '.settings.log.level' "$WORKING_JSON")
-    log_debug "info" "Loaded LOG_LEVEL: $LOG_LEVEL"
+    log_debug "debug" "Loaded LOG_LEVEL: $LOG_LEVEL"
+    RCLONE_CONFIG=$(jq -r '.settings.rclone.config' "$WORKING_JSON")
+    log_debug "debug" "Loaded RCLONE_CONFIG: $RCLONE_CONFIG"
 fi
 
-if [ -z "$LOG_LEVEL" ]; then
+if [ -z "$LOG_LEVEL" ] || [ "$LOG_LEVEL" == "null" ]; then
     LOG_LEVEL="info"
 fi
 
 # Set RCLONE_CONFIG if not set
-if [ -z "$RCLONE_CONFIG" ]; then
+if [ -z "$RCLONE_CONFIG" ] || [ "$RCLONE_CONFIG" == "null" ]; then
     RCLONE_CONFIG="/config/rclone.conf"
 fi
 
@@ -46,7 +48,6 @@ if [ $# -ne 1 ]; then
     log_debug "error" "Wrong Usage: $0 <schedule_index>"
     exit 1
 fi
-
 
 # Read the JSON file and execute commands for the specified schedule index
 if [ -f "$WORKING_JSON" ]; then
@@ -71,7 +72,7 @@ if [ -f "$WORKING_JSON" ]; then
         remote_path=$(echo "$command_obj" | jq -r '.remote_path // empty')
 
         if [[ "$command" == "rclone"* ]]; then
-            command_flags+=" --log-file=$RCLONE_LOG_FILE --log-format=date,time,UTC --config=${RCLONE_CONFIG}"
+            command_flags+=" --log-file=$RCLONE_LOG_FILE --log-format=date,time,UTC --config=$RCLONE_CONFIG"
         fi
 
         # If local path and remote path are set, include them

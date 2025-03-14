@@ -259,6 +259,34 @@ All settings listed in the ENV Vars section can be set in the JSON file as well.
 }
 ```
 
+## Execution of Cron Jobs in rclone_cron.sh
+
+The `rclone_cron.sh` script is designed to be scheduled via cron jobs, which are defined in the system's crontab. The following command format is used to automate the execution of the script:
+
+```shell
+"$schedule root flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$schedule_index_in_json_file\""
+```
+
+The `rclone_cron.sh` script is designed to automate the process of executing scheduled tasks for synchronizing files between a local filesystem and a cloud storage solution using rclone. It reads the configuration from a JSON file, executes the defined cron jobs, and logs the activity for monitoring and debugging purposes. It expects a single argument, which is the index of the schedule in the JSON file which commands to execute. 
+
+- **Cron Job Execution**: The script is executed by cron at scheduled intervals, allowing it to automatically perform file synchronization tasks without manual intervention.
+- **Logging**: The script logs all executed commands and debug information to `/log/cron.log` this will aso be prompted in the STDOUT of the container.
+- **Dynamic Configuration Loading**: It reads configuration settings from the working JSON file, containing all cron commands from the `/config/config.json` and from the ENV vars.
+- **Concurrency Control**: Uses file locking mechanisms to prevent concurrent executions of the same cron job, ensuring that tasks do not overlap.
+
+To ensure the correct configuration of rclone to the command_flags of each command starting with `rclone` the following parameters will be added:
+```
+--log-file=$RCLONE_LOG_FILE 
+--log-format=date,time,UTC
+--config=$RCLONE_CONFIG
+```
+
+## Usage
+
+To use the `rclone_cron.sh` script effectively:
+1. Ensure that you have a valid JSON configuration file that defines the cron jobs and their parameters.
+2. Schedule the script as a cron job in your crontab to run at desired intervals, e.g.:
+
 ## rClone Configuration
 
 This project includes a default rClone WebDAV remote named **Internxt**, which is configured to connect to the local Internxt CLI. This setup enables seamless file management within the Internxt service.
