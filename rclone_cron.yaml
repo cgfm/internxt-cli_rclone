@@ -1,0 +1,15 @@
+cron_jobs:
+  - schedule: "*/15 * * * *"
+    commands:
+      - command: "rclone copy"
+        local_path: "/path/to/local"
+        remote_path: "remote:path/to/remote"
+      - command: "rclone copy"
+        local_path: "/path/to/local2"
+        remote_path: "remote:path/to/remote2"
+  - schedule: "0 * * * *"
+    commands:
+    - command: "rclone sync"
+      local_path: "/another/local/path"
+      remote_path: "another_remote:path"
+      cron_schedule: "0 * * * *"  # Another example
