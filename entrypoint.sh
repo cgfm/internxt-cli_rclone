@@ -467,7 +467,7 @@ if [ -f "$WORKING_JSON" ]; then
             cronentries+="$schedule root flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$i\"\n"
             log_debug "debug" "Added cron job for schedule '$schedule' at index $i."
         done
-        (crontab -l; echo "cronentries") | crontab -
+        (crontab -l; echo "$cronentries") | crontab -
 
         OUTPUT=$(service cron start 2>&1)  # Start the cron service
         log_debug "fine" "$OUTPUT" 
