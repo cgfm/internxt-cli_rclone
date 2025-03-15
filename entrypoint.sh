@@ -475,7 +475,8 @@ if [ -f "$WORKING_JSON" ]; then
             log_debug "info" "Cron service started."
         fi
         
-        log_debug "fine" "Cron jobs created created:\n$(< /var/spool/cron/root)"
+        OUTPUT=$(crontab -l 2>&1)
+        log_debug "fine" "Cron jobs created created:\n$OUTPUT"
     fi
 fi
 
