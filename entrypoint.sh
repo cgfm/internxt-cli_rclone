@@ -464,7 +464,7 @@ if [ -f "$WORKING_JSON" ]; then
             # Extract the schedule for the current job
             schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
             # Register the cron job in crontab
-            cronentries+="$schedule root flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$i\"\n"
+            cronentries+="${schedule//\*/\\*} root flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$i\"\n"
             log_debug "debug" "Added cron job for schedule '$schedule' at index $i."
         done
         (crontab -l; echo "$cronentries") | crontab -
