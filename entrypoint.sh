@@ -467,7 +467,7 @@ if [ -f "$WORKING_JSON" ]; then
             # Extract the schedule for the current job
             schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
             # Register the cron job in crontab
-            echo "$schedule root flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$i\"" >> /var/spool/cron/root
+            echo "$schedule flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$i\"" >> /var/spool/cron/root
             log_debug "debug" "Added cron job for schedule '$schedule' at index $i."
         done
 
@@ -499,7 +499,7 @@ tail_with_prefix() {
     local log_file="$1"
     local prefix="$2"
 
-    tail -f "$log_file" | while read -r line; do
+    tail -f -n 0 "$log_file" | while read -r line; do
         
         if [[ "$line" == "tail: '$log_file'"* ]]; then
             continue
