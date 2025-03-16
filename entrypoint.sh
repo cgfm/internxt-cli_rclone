@@ -458,16 +458,20 @@ if [ -f "$WORKING_JSON" ]; then
     total_schedules=$(jq '.cron_jobs | length' "$WORKING_JSON")
     # Start cron jobs based on the schedules in the JSON file
     if [ "$total_schedules" -gt 0 ]; then
-        cronentries=""
+        # Initialize crontab if it doesn't exist
+        [ -f "/var/spool/cron/root" ] && rm /var/spool/cron/root
+        touch /var/spool/cron/root
+
         # Iterate over each job in the JSON file
         for ((i=0; i<total_schedules; i++)); do
             # Extract the schedule for the current job
             schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
             # Register the cron job in crontab
-            cronentries+="$schedule root flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$i\"\n"
+            echo "$schedule root flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$i\"" >> /var/spool/cron/root
             log_debug "debug" "Added cron job for schedule '$schedule' at index $i."
         done
-        (crontab -l; echo "$cronentries") | crontab -
+
+        /usr/bin/crontab /var/spool/cron/root  # Load the new crontab
 
         OUTPUT=$(service cron start 2>&1)  # Start the cron service
         log_debug "fine" "$OUTPUT" 
