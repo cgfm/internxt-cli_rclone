@@ -100,10 +100,12 @@ if [ -f "$WORKING_JSON" ]; then
 
         # If local path and remote path are set, include them
         if [[ -n "$local_path" && -n "$remote_path" ]]; then
+            echo "Schedule #$schedule_index $schedule running $command for $local_path and $remote_path" > "/tmp/cron.$schedule_index.lock"
             log_debug "notice" "Running command: $command $local_path $remote_path $command_flags"
             eval "$command $local_path $remote_path $command_flags"
         elif [[ -n "$command" ]]; then
             # If only command is present, run it with flags
+            echo "Schedule #$schedule_index $schedule running$command $command_flags" > "/tmp/cron.$schedule_index.lock"
             log_debug "notice"  "Running command: $command $command_flags"
             eval "$command $command_flags"
         fi
