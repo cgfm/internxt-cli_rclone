@@ -9,8 +9,9 @@ services:
     #  dockerfile: Dockerfile  # Specify the Dockerfile name if it's not named 'Dockerfile'
     environment:
       #STOPATSTART: "true"
-      LOG_LEVEL: "debug"
-
+      #LOG_LEVEL: "info"
+      #LOG_FILE_COUNT: 
+      #LOG_MAX_LOG_SIZE: 
       #INTERNXT_EMAIL: my-username
       #INTERNXT_PASSWORD: my-password
       #INTERNXT_WEB_PORT: 3005
@@ -23,31 +24,34 @@ services:
       #RCLONE_WEB_GUI_SERVE: "true"
       #RCLONE_WEB_GUI_USER: my-username
       #RCLONE_WEB_GUI_PASS: my-password
+      #RCLONE_WEB_GUI_HTPASSWD_PATH: 
       #RCLONE_WEB_GUI_SSL_CERT: /config/certs/internxt.local.crt
       #RCLONE_WEB_GUI_SSL_KEY: /config/certs/internxt.local.key
+      #RCLONE_WEB_GUI_EXTRA_PARAMS: 
       #ROOT_CA: /config/certs/my-local-ca.pem
       #TZ: Europe/Berlin
       #REMOTE_PATH_1: Internxt:remote/Path
       #LOCAL_PATH_1: /container/Path
       #CRON_COMMAND: ""
+      #CRON_COMMAND_FLAGS: ""
       #CRON_SCHEDULE: "*/15 * * * *"
     volumes:
       - /dockerVolumes/internxt/config:/config
       - /dockerVolumes/internxt/data:/data
       - /dockerVolumes/internxt/logs:/logs
-      - /host/Path:/container/Path:ro
+      - /backupSource:/media/backupSource
     ports:
       # Internxt WebDAV 
-      - "3005:3005"
+      - "3105:3005"
       # rClone webgui 
-      - "5572:5572"
+      - "5672:5572"
       # rClone ssh
-      - "53682:53682"
+      - "54682:53682"
     networks:
-      xyzbridge:
-        ipv4_address: 172.20.0.2
+      servicebridge:
+        ipv4_address: 172.20.0.20
     restart: always
 
 networks:
-  xyzbridge:
+  servicebridge:
     external: true

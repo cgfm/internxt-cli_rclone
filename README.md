@@ -23,13 +23,14 @@ The following environment variables can be set when running the Docker container
 | `RCLONE_CONFIG`                     |  `rclone.config`              | Path to the rclone configuration file. Default is `/config/rclone.conf`.                                                                           |
 | `RCLONE_WEB_GUI_SERVE`              |  `rclone.webgui_serve`        | Set to false to disable the rClone Web GUI. Default is `true`.                                                                                     |
 | `RCLONE_WEB_GUI_PORT`               |  `rclone.webgui_port`         | Port for rclone Web GUI. Default is `5572`.                                                                                                        |
-| `RCLONE_WEB_GUI_USER`               |  `rclone.webgui_user`         | Username for the rclone Web GUI (optional). If not user and pass are set it won't be used.                                                         |
-| `RCLONE_WEB_GUI_PASS`               |  `rclone.webgui_pass`         | Password for the rclone Web GUI (optional). If not user and pass are set it won't be used.                                                         |
+| `RCLONE_WEB_GUI_USER`               |  `rclone.webgui_user`         | Username for the rclone Web GUI (optional). If no user and pass are set they won't be used. |
+| `RCLONE_WEB_GUI_PASS`               |  `rclone.webgui_pass`         | Password for the rclone Web GUI (optional). If no user and pass are set they won't be used. |
+| `RCLONE_WEB_GUI_HTPASSWD_PATH`      |  `rclone.webgui_htpasswd_path`| Path to the htpasswd file for the rclone Web GUI (optional). Ìf username and password are set together with .htpasswd file, the username and password will be checked against the file. If the check fails, the user will be updated with the given username and password. |
 | `RCLONE_WEB_GUI_SSL_CERT`           |  `rclone.webgui_ssl_cert`     | Path to the SSL certificate for HTTPS (if enabled).                                                                                                |
 | `RCLONE_WEB_GUI_SSL_KEY`            |  `rclone.webgui_ssl_key`      | Path to the SSL key for HTTPS (if enabled).                                                                                                        |
 | `RCLONE_WEB_GUI_EXTRA_PARAMS`       |  `rclone.webgui_extra_params` | Additional parameters for rclone Web GUI (optional). Default is an empty string.                                                                   |
 | `CRON_COMMAND`                      |  `cron.command`               | Default cron command to be executed by cron (optional). Can be overwritten by the `CRON_COMMAND_*` variables. Default is `rclone copy`. The command will be run with each pair of local and remote paths.<br>If remote files should be deleted if the don't exists locally anymore set this to `rclone sync`. **WARNING:** This will delete files on the remote if they are not present locally. **This could cause data loss!**  |
-| `CRON_COMMAND_FLAGS`                |  `cron.command_flags`         | The Flags appended to the command above  (optional). Can be overwritten by the `CRON_COMMAND_FLAGS_*` variables. Default is ` --create-empty-src-dirs --retries 5 --verbose`. The command will be run with each pair of local and remote paths. |
+| `CRON_COMMAND_FLAGS`                |  `cron.command_flags`         | The Flags appended to the command above  (optional). Can be overwritten by the `CRON_COMMAND_FLAGS_*` variables. Default is ` --create-empty-src-dirs --retries 5`. The command will be run with each pair of local and remote paths. |
 | `CRON_SCHEDULE`                     |  `cron.schedule`              | Cron schedule for running the specified command. Can be overwritten by the `CRON_SCHEDULE_*` variables. Default is */15 * * * *.                                    |
 | `LOCAL_PATH_1` to `LOCAL_PATH_20`   |                               | Up to 20 local paths where files will be synchronized. Each local path must have a corresponding remote path.                                      |
 | `REMOTE_PATH_1` to `REMOTE_PATH_20` |                               | Up to 20 remote paths for synchronization with the Internxt service.                                                                               |
@@ -38,7 +39,7 @@ The following environment variables can be set when running the Docker container
 | `CRON_SCHEDULE_1` to `CRON_SCHEDULE_20` |                               | Up to 20 schedules for the associated custom command and/or the associated local and remote path can be set. Details are explained at [Building and Executing Cron Commands](#custom-cron-command).                        |
 | `ROOT_CA`                           |  `root_ca`                    | If the path to a root ca is set it will be appended to the ca-certificates.crt file to avoid "Unknown CA" errors (optional).                       |
 | `TZ`                                |                               | Timezone for the application. Default is `Etc/UTC`.                                              |
-| `LOG_LEVEL`                         |  `log.level`                  | Set the log level for the application. Default is `info`. See [Log Level](#log-level) for more information.    |
+| `LOG_LEVEL`                         |  `log.level`                  | Set the log level for the application. Default is `notice`. See [Log Level](#log-level) for more information.    |
 | `LOG_LOGFILE_COUNT`                  | `log.file_count`          | Set the number of log files to keep. Default is `3`. If its set to a negative value it will keep all log files. See [Log File Management](#log-file-management) for more information.        |
 | `LOG_MAX_LOG_SIZE`                   | `log.max_log_size`          | Set the maximum size of a single log file in bytes. Default is `10485760` (10MB). If its set to a negative value the log file size will not be limited. Instead at each startup the log file will be rotated. See [Log File Management](#log-file-management) for more information. |
 | `STOPATSTART`                       |                               | If set to `true`, the container will stop after the initial synchronization. Before starting any services. Default is `false`. This is just for debugging purposes.                        |
@@ -102,7 +103,7 @@ services:
     restart: unless-stopped
 ```
 
-## Directory Structure: `/config`, `/data` and `/logs`
+## Directory Structure
 
 ### Overview
 
@@ -137,9 +138,12 @@ This application utilizes two primary directories—`/config` and `/data`—to m
   - **Logs**: The application writes logs to `/logs`, which allows for monitoring and debugging.
   - **Internxt Logs**: The logs related to the Internxt CLI are specifically stored in `/logs/internxt`, which is created during the first run if it does not already exist.
 
-### Summary
+### `/root/.ssh` Directory
 
-Using the `/config` and `/data` directories allows the application to maintain a clean separation between configuration and persistent data. The `/logs` directory can be mounted to store logs for persistent monitoring and debugging.
+- **Purpose**: The `/root/.ssh` directory is used to store ssh keys. These are used for SFTP access with rClone.
+- **Contents**:
+  - **id_rsa**: This is typically the private key for SSH access. 
+  - **id_rsa.pub**: This is typically the public key for SSH access. 
 
 ## Building and Executing Cron Commands
 ### Cron Command
@@ -152,16 +156,18 @@ rclone copy
 The `CRON_COMMAND_FLAGS` environment variable allows you to specify additional flags for the command. If no flags are provided, the default flags used are:
 
 ```
- --create-empty-src-dirs --retries 5 --verbose
+ --create-empty-src-dirs --retries 5
 ```
+
+**Notice:** You cant -v or --verbose in your flags as it will cause the cron job to fail. The parameter --log-level is allways appended to rclone commands. If -v and --log-level is set, rClone will fail with the error "CRITICAL: Can't set -v and --log-level". To be sure this won't happen in the custom flags -v and --verbose will be removed from the flags. 
 
 The cron command will be built to include all pairs of local and remote paths defined. For example, if you define `LOCAL_PATH_1` and `REMOTE_PATH_1`, the command will be constructed to run the sync between these two paths.
 
 ```
-rclone copy LOCAL_PATH_1 REMOTE_PATH_1 --create-empty-src-dirs --retries 5 --verbose
-rclone copy LOCAL_PATH_2 REMOTE_PATH_2 --create-empty-src-dirs --retries 5 --verbose
+rclone copy LOCAL_PATH_1 REMOTE_PATH_1 --create-empty-src-dirs --retries 5
+rclone copy LOCAL_PATH_2 REMOTE_PATH_2 --create-empty-src-dirs --retries 5
 ...
-rclone copy LOCAL_PATH_n<=20 REMOTE_PATH_n<=20 --create-empty-src-dirs --retries 5 --verbose 
+rclone copy LOCAL_PATH_n<=20 REMOTE_PATH_n<=20 --create-empty-src-dirs --retries 5 
 ```
 
 ### Custom Cron Command
@@ -185,12 +191,12 @@ environment:
 
 Will result in the following cron jobs:
 ```
-rclone copy /local/path1 remote:path1 --create-empty-src-dirs --retries 5 --verbose
+rclone copy /local/path1 remote:path1 --create-empty-src-dirs --retries 5
 command 2
-rclone copy /local/path2 remote:path2 --create-empty-src-dirs --retries 5 --verbose
+rclone copy /local/path2 remote:path2 --create-empty-src-dirs --retries 5
 command 3
 command 4
-rclone copy /local/path4 remote:path4 --create-empty-src-dirs --retries 5 --verbose
+rclone copy /local/path4 remote:path4 --create-empty-src-dirs --retries 5
 command 5
 ```
 
@@ -218,13 +224,13 @@ All settings listed in the ENV Vars section can be set in the JSON file as well.
       "commands": [
         {
           "command": "rclone copy",
-          "command_flags": "--create-empty-src-dirs --retries 5 --verbose",
+          "command_flags": "--create-empty-src-dirs --retries 5",
           "local_path": "/local/path1",
           "remote_path": "remote:path1"
         },
         {
           "command": "rclone copy",
-          "command_flags": "--create-empty-src-dirs --retries 5 --verbose",
+          "command_flags": "--create-empty-src-dirs --retries 5",
           "local_path": "/local/path2",
           "remote_path": "remote:path2"
         }
@@ -238,7 +244,7 @@ All settings listed in the ENV Vars section can be set in the JSON file as well.
         },
         {
           "command": "rclone copy",
-          "command_flags": "--create-empty-src-dirs --retries 5 --verbose",
+          "command_flags": "--create-empty-src-dirs --retries 5",
           "local_path": "/local/backup/path",
           "remote_path": "remote:backup/path"
         }
@@ -254,7 +260,7 @@ All settings listed in the ENV Vars section can be set in the JSON file as well.
       "config": "/config/rclone.conf"
     },
     "log": {
-      "level": "info"
+      "level": "notice"
     }
   }
 }
@@ -280,13 +286,11 @@ To ensure the correct configuration of rclone to the command_flags of each comma
 --log-file=$RCLONE_LOG_FILE 
 --log-format=date,time,UTC
 --config=$RCLONE_CONFIG
+--log-level=$LOG_LEVEL (to uppercase) 
+--stats=1m0s
+--stats-log-level=INFO
+--stats-one-line
 ```
-
-## Usage
-
-To use the `rclone_cron.sh` script effectively:
-1. Ensure that you have a valid JSON configuration file that defines the cron jobs and their parameters.
-2. Schedule the script as a cron job in your crontab to run at desired intervals, e.g.:
 
 ## rClone Configuration
 
@@ -368,14 +372,14 @@ The application includes a robust logging mechanism that allows you to control t
 
 - **Environment Variable**: `LOG_LEVEL`
 - **JSON Key**: `log.level`
-- **Description**: This variable sets the log level for the application. The default log level is `info`, which means that only informational messages and above (like warnings and errors) will be logged. 
+- **Description**: This variable sets the log level for the application. The default log level is `notice`, which means that only informational messages and above (like warnings and errors) will be logged. 
 - **Possible Values**:
   - `fine`: Very detailed logging, useful for debugging.
   - `debug`: Less detailed than `fine`, but still verbose.
-  - `info`: General information about the application's operations (default).
+  - `notice`: General information about the application's operations (default).
   - `error`: Only error messages are logged.
   
-  It's recommended to set the log level using the environment variable. If not set, the application will log entries at the default level (`info`) until the JSON configuration file is loaded.
+  It's recommended to set the log level using the environment variable. If not set, the application will log entries at the default level (`notice`) until the JSON configuration file is loaded.
 
 ### Log File Management
 
@@ -396,7 +400,7 @@ The application provides options to manage log files, including the number of fi
 To configure logging, you can set the environment variables when running the application. Here’s an example:
 
 ```bash
-docker run -e LOG_LEVEL="debug" -e LOG_LOGFILE_COUNT="5" -e LOG_MAX_LOG_SIZE="20971520" ...
+docker run -e LOG_LEVEL="info" -e LOG_LOGFILE_COUNT="5" -e LOG_MAX_LOG_SIZE="20971520" ...
 ```
 
 This command sets the log level to debug, keeps up to 5 log files, and limits each log file to 20MB.
