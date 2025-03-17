@@ -5,7 +5,7 @@ ENV STOPATSTART="false"
 ENV TZ=Etc/UTC
 
 RUN apt-get update && \
-    apt-get install -y curl gnupg2 tzdata jq gzip unzip cron && \
+    apt-get install -y curl gnupg2 tzdata jq gzip unzip cron apache2-utils && \
     curl -fsSL https://deb.nodesource.com/setup_23.x | bash - && \
     apt-get install -y nodejs && \
     apt-get clean && \
@@ -19,7 +19,8 @@ RUN npm update -g axios
 
 # Create directories for the rclone configuration and SSL certs
 RUN mkdir -p /logs/internxt /config/internxt/certs /root/.internxt-cli /root/.cache /data/internxt/certs /data/rclone && \
-    touch /logs/rclone.log
+    touch /logs/rclone.log && \
+    touch /logs/cron.log 
 
 # Set the timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -50,8 +51,10 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 VOLUME [ "/data" ]
 VOLUME [ "/config" ]
-VOLUME [ "/logs" ]
 
+# Disabled the following mount points to avoid auto-mounting of the volumes in the container. They are only here to inform interested users.
+# Only needed if logs schould be saved
+#VOLUME [ "/logs" ]
 # Only needed if SFTP with key is used
 #VOLUME [ "/root/.ssh" ]
 

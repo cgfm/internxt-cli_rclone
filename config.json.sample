@@ -5,7 +5,7 @@
       "commands": [
         {
           "command": "rclone sync",
-          "command_flags": "--create-empty-src-dirs --retries 5 --verbose",
+          "command_flags": "--create-empty-src-dirs --retries 5",
           "local_path": "/container/Path/backup",
           "remote_path": "Internxt:remote/backup"
         }
@@ -16,7 +16,7 @@
       "commands": [
         {
           "command": "rclone sync",
-          "command_flags": "--create-empty-src-dirs --retries 5 --verbose",
+          "command_flags": "--create-empty-src-dirs --retries 5",
           "local_path": "/containter/paperless/path",
           "remote_path": "Internxt:Paperless"
         }
@@ -38,6 +38,7 @@
       "webgui_serve": true,
       "webgui_user": "localGuiUser",
       "webgui_pass": "localGuiPassword",
+      "web_htpasswd_path": "/config/.htpasswd",
       "webgui_ssl_cert": "/config/certs/internxt.local.crt",
       "webgui_ssl_key": "/config/certs/internxt.local.key"
     },
