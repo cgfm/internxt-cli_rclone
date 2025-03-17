@@ -1,0 +1,53 @@
+services:
+  internxt:
+    container_name: Media_InternxtCLI
+    hostname: internxt
+    image: cgfm/internxt-cli_rclone:latest
+    #image: cgfm/internxt-cli_rclone:dev
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile  # Specify the Dockerfile name if it's not named 'Dockerfile'
+    environment:
+      #STOPATSTART: "true"
+      LOG_LEVEL: "debug"
+
+      #INTERNXT_EMAIL: my-username
+      #INTERNXT_PASSWORD: my-password
+      #INTERNXT_WEB_PORT: 3005
+      #INTERNXT_HTTPS: true
+      #INTERNXT_HOST: localhost
+      #INTERNXT_SSL_CERT: /config/certs/internxt.local.crt
+      #INTERNXT_SSL_KEY: /config/certs/internxt.local.key
+      #RCLONE_CONFIG: /config/rclone.conf
+      #RCLONE_WEB_GUI_PORT: 5572
+      #RCLONE_WEB_GUI_SERVE: "true"
+      #RCLONE_WEB_GUI_USER: my-username
+      #RCLONE_WEB_GUI_PASS: my-password
+      #RCLONE_WEB_GUI_SSL_CERT: /config/certs/internxt.local.crt
+      #RCLONE_WEB_GUI_SSL_KEY: /config/certs/internxt.local.key
+      #ROOT_CA: /config/certs/my-local-ca.pem
+      #TZ: Europe/Berlin
+      #REMOTE_PATH_1: Internxt:remote/Path
+      #LOCAL_PATH_1: /container/Path
+      #CRON_COMMAND: ""
+      #CRON_SCHEDULE: "*/15 * * * *"
+    volumes:
+      - /dockerVolumes/internxt/config:/config
+      - /dockerVolumes/internxt/data:/data
+      - /dockerVolumes/internxt/logs:/logs
+      - /host/Path:/container/Path:ro
+    ports:
+      # Internxt WebDAV 
+      - "3005:3005"
+      # rClone webgui 
+      - "5572:5572"
+      # rClone ssh
+      - "53682:53682"
+    networks:
+      xyzbridge:
+        ipv4_address: 172.20.0.2
+    restart: always
+
+networks:
+  xyzbridge:
+    external: true
