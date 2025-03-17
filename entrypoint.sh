@@ -470,6 +470,7 @@ if [ -f "$WORKING_JSON" ]; then
             echo "$schedule flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$i\"" >> /var/spool/cron/root
             log_debug "debug" "Added cron job for schedule '$schedule' at index $i."
         done
+        (crontab -l; echo "$cronentries") | crontab -
 
         /usr/bin/crontab /var/spool/cron/root  # Load the new crontab
 
