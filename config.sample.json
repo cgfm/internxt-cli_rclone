@@ -1,0 +1,47 @@
+{
+  "cron_jobs": [
+    {
+      "schedule": "0 4 * * *",
+      "commands": [
+        {
+          "command": "rclone sync",
+          "command_flags": "--create-empty-src-dirs --retries 5 --verbose",
+          "local_path": "/container/Path/backup",
+          "remote_path": "Internxt:remote/backup"
+        }
+      ]
+    },
+    {
+      "schedule": "*/15 * * * *",
+      "commands": [
+        {
+          "command": "rclone sync",
+          "command_flags": "--create-empty-src-dirs --retries 5 --verbose",
+          "local_path": "/containter/paperless/path",
+          "remote_path": "Internxt:Paperless"
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "internxt": {
+      "email": "internxtUsername",
+      "password": "internxtPassword",
+      "web_port": 3005,
+      "https": true,
+      "ssl_cert": "/config/certs/internxt.local.crt",
+      "ssl_key": "/config/certs/internxt.local.key"
+    },
+    "rclone": {
+      "config": "/config/rclone.conf",
+      "webgui_port": "5572",
+      "webgui_serve": true,
+      "webgui_user": "localGuiUser",
+      "webgui_pass": "localGuiPassword",
+      "webgui_ssl_cert": "/config/certs/internxt.local.crt",
+      "webgui_ssl_key": "/config/certs/internxt.local.key"
+    },
+    "root_ca": "/config/certs/my-local-CA.pem",
+    "timezone": "Europe/Berlin"
+  }
+}
