@@ -28,6 +28,10 @@ log_debug() {
     echo -e "$(date '+%Y-%m-%d %H:%M:%S') $message" | tee "$CRON_LOG_FILE"
 }
 
+# Record the start time
+start_time=$(date '+%Y-%m-%d %H:%M:%S')
+log_debug "info" "Starting rclone cron job for schedule index $schedule_index. Execution started at: $start_time"
+
 if [ -f "$WORKING_JSON" ]; then
     # Extract LOG_LEVEL
     if [ -z "$LOG_LEVEL" ]; then
@@ -100,12 +104,12 @@ if [ -f "$WORKING_JSON" ]; then
 
         # If local path and remote path are set, include them
         if [[ -n "$local_path" && -n "$remote_path" ]]; then
-            echo "Schedule #$schedule_index $schedule running $command for $local_path and $remote_path" > "/tmp/cron.$schedule_index.lock"
+            echo "[$(date '+%H:%M')] Schedule #$schedule_index $schedule running $command for $local_path and $remote_path" > "/tmp/cron.$schedule_index.lock"
             log_debug "notice" "Running command: $command $local_path $remote_path $command_flags"
             eval "$command $local_path $remote_path $command_flags"
         elif [[ -n "$command" ]]; then
             # If only command is present, run it with flags
-            echo "Schedule #$schedule_index $schedule running$command $command_flags" > "/tmp/cron.$schedule_index.lock"
+            echo "[$(date '+%H:%M')] Schedule #$schedule_index $schedule running$command $command_flags" > "/tmp/cron.$schedule_index.lock"
             log_debug "notice"  "Running command: $command $command_flags"
             eval "$command $command_flags"
         fi
@@ -114,3 +118,22 @@ else
     log_debug "error" "Configuration file $WORKING_JSON not found."
     exit 1
 fi
+
+# Record the finish time
+finish_time=$(date '+%Y-%m-%d %H:%M:%S')
+
+# Calculate the time difference
+time_difference=$((finish_time - start_time))
+
+# Convert seconds into a human-readable format (e.g., HH:MM:SS)
+hours=$((time_difference / 3600))
+minutes=$(( (time_difference % 3600) / 60 ))
+seconds=$((time_difference % 60))
+
+# Display the time difference
+duration=$(printf "%02d:%02d:%02d\n" $hours $minutes $seconds)
+
+log_debug "notice" "Finished rclone cron job for schedule index $schedule_index after $duration."
+log_debug "info" "Execution finished at: $finish_time"
+
+rm "/tmp/cron.$schedule_index.lock"
