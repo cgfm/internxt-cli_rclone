@@ -105,7 +105,7 @@ if [ -f "$WORKING_JSON" ]; then
         # Check for the first pipe "|" in the command
         if [[ "$command" == *\|* ]]; then
             # Insert command flags before the first "|"
-            command="$(echo "$command" | sed -E "s/([^|]*)|\(.*\)/\1 $command_flags |\2/")"
+            command="$(echo "$command" | sed -E "s/([^|]*)\|(.*)/\1$command_flags \|\2/")"
         else
             # Add the command flags as part of the final command
             command="$command $command_flags"
