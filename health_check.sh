@@ -109,11 +109,21 @@ if [ "$total_jobs" -gt 0 ]; then
     # Verify that the cron jobs are registered in crontab
     for ((i=0; i<total_jobs; i++)); do
         # Extract the schedule for the current job
-        schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
+        if jq -e ".cron_jobs[$i].schedule | type == \"array\"" "$WORKING_JSON" > /dev/null; then
+            schedules_array=$(jq -r ".cron_jobs[$i].schedule[]" "$WORKING_JSON")
+            while IFS= read -r schedule; do
+                # Check if the schedule exists in crontab
+                if ! crontab -l | grep -q "$schedule"; then
+                    error_exit "Cron job $i with schedule '$schedule' is not found in crontab."
+                fi
+            done <<< "$schedules_array"
+        else
+            schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
         
-        # Check if the schedule exists in crontab
-        if ! crontab -l | grep -q "$schedule"; then
-            error_exit "Cron job $i with schedule '$schedule' is not found in crontab."
+            # Check if the schedule exists in crontab
+            if ! crontab -l | grep -q "$schedule"; then
+                error_exit "Cron job $i with schedule '$schedule' is not found in crontab."
+            fi
         fi
     done
 fi
