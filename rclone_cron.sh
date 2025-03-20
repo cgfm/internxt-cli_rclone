@@ -102,16 +102,25 @@ if [ -f "$WORKING_JSON" ]; then
             command_flags+=" --log-file=$RCLONE_LOG_FILE --log-level=$stats_log_level --log-format=date,time,UTC --config=$RCLONE_CONFIG --stats=1m0s --stats-log-level=INFO --stats-one-line"
         fi
 
+        # Check for the first pipe "|" in the command
+        if [[ "$command" == *\|* ]]; then
+            # Insert command flags before the first "|"
+            command="$(echo "$command" | sed -E "s/([^|]*)|\(.*\)/\1 $command_flags |\2/")"
+        else
+            # Add the command flags as part of the final command
+            command="$command $command_flags"
+        fi
+        
         # If local path and remote path are set, include them
         if [[ -n "$local_path" && -n "$remote_path" ]]; then
             echo "[$(date '+%H:%M')] Schedule #$schedule_index $schedule running $command for $local_path and $remote_path" > "/tmp/cron.$schedule_index.lock"
-            log_debug "notice" "Running command: $command $local_path $remote_path $command_flags"
-            eval "$command $local_path $remote_path $command_flags"
+            log_debug "notice" "Running command: $command $local_path $remote_path"
+            eval "$command $local_path $remote_path"
         elif [[ -n "$command" ]]; then
             # If only command is present, run it with flags
-            echo "[$(date '+%H:%M')] Schedule #$schedule_index $schedule running$command $command_flags" > "/tmp/cron.$schedule_index.lock"
-            log_debug "notice"  "Running command: $command $command_flags"
-            eval "$command $command_flags"
+            echo "[$(date '+%H:%M')] Schedule #$schedule_index $schedule running$command" > "/tmp/cron.$schedule_index.lock"
+            log_debug "notice"  "Running command: $command"
+            eval "$command"
         fi
     done
 else
