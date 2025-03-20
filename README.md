@@ -206,7 +206,7 @@ command 5
 The cron jobs and commands you define are stored at runtime in a JSON file located at `/working/rclone_cron.json`. You can provide your own JSON file to customize the cron jobs and commands by setting the `CONFIG_FILE` environment variable to the path of your JSON file or by simply storing your JSON file at `/config/rclone_cron.json`. The structure of this JSON file allows for dynamic command execution based on the defined environment variables and the `CONFIG_FILE` file. You can Use the ENV Vars and the JSON file both at the same time. they will be combined in the `/working/rclone_cron.json` file. More about the cron jobs and commands in the [Building and Executing Cron Commands](#custom-cron-command) section.
 
 - **cron_jobs**: This is an array containing objects for each scheduled job. Each object need to have:
-  - **schedule**: The cron schedule for the job.
+  - **schedule**: The cron schedule for the job. This can also be an array of schedules if you want to run the same commands at multiple times.
   - **commands**: An array of command objects to execute at the specified schedule.
 
 ### Settings
@@ -220,7 +220,10 @@ All settings listed in the ENV Vars section can be set in the JSON file as well.
 {
   "cron_jobs": [
     {
-      "schedule": "*/15 * * * *",
+      "schedule": [
+        "*/15 0-2 * * *",
+        "*/15 5-23 * * *",
+      ],
       "commands": [
         {
           "command": "rclone copy",

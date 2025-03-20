@@ -526,10 +526,21 @@ if [ -f "$WORKING_JSON" ]; then
         # Iterate over each job in the JSON file
         for ((i=0; i<total_schedules; i++)); do
             # Extract the schedule for the current job
-            schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
-            # Register the cron job in crontab
-            echo "$schedule flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$i\"" >> /var/spool/cron/root
-            log_debug "info" "Added cron job for schedule '$schedule' at index $i."
+            if jq -e ".cron_jobs[$i].schedule | type == \"array\"" "$WORKING_JSON" > /dev/null; then
+                schedules_array=$(jq -r ".cron_jobs[$i].schedule[]" "$WORKING_JSON")
+                
+                while IFS= read -r schedule; do
+                    # Register the cron job in crontab
+                    echo "$schedule flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$i\"" >> /var/spool/cron/root
+                    log_debug "info" "Added cron job for schedule '$schedule' at index $i."
+                done <<< "$schedules_array"
+            else
+                schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
+
+                # Register the cron job in crontab
+                echo "$schedule flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$i\"" >> /var/spool/cron/root
+                log_debug "info" "Added cron job for schedule '$schedule' at index $i."
+            fi
         done
         /usr/bin/crontab /var/spool/cron/root  # Load the new crontab
 
