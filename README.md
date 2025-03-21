@@ -42,6 +42,7 @@ The following environment variables can be set when running the Docker container
 | `LOG_LEVEL`                         |  `log.level`                  | Set the log level for the application. Default is `notice`. See [Log Level](#log-level) for more information.    |
 | `LOG_LOGFILE_COUNT`                  | `log.file_count`          | Set the number of log files to keep. Default is `3`. If its set to a negative value it will keep all log files. See [Log File Management](#log-file-management) for more information.        |
 | `LOG_MAX_LOG_SIZE`                   | `log.max_log_size`          | Set the maximum size of a single log file in bytes. Default is `10485760` (10MB). If its set to a negative value the log file size will not be limited. Instead at each startup the log file will be rotated. See [Log File Management](#log-file-management) for more information. |
+| `LOG_ROTATE_AT_START`                | `log.rotate_at_start`       | If set to `true`, the log files will be rotated at startup. Default is `false`. See [Log File Management](#log-file-management) for more information. |
 | `STOPATSTART`                       |                               | If set to `true`, the container will stop after the initial synchronization. Before starting any services. Default is `false`. This is just for debugging purposes.                        |
 
 ## Docker Image
@@ -397,6 +398,10 @@ The application provides options to manage log files, including the number of fi
 - **Description**: This variable sets the maximum size (in bytes) for a single log file. The default size is `10485760` (10MB). If set to a negative value, there will be no size limit.
 
   When the log file exceeds the specified size, it will be rotated. For example, if you have set the maximum size to `10MB` and the logfile count to `3`, the application will keep the original log file and up to three older versions. Each of these can be up to `10MB` in size, leading to a potential total log size of `4 x 10MB = 40MB`.
+
+- **Environment Variable**: `LOG_ROTATE_AT_START`
+- **JSON Key**: `log.rotate_at_start`
+- **Description**: This variable determines whether to rotate the log file at the start of the application. The default value is `false`. If set to `true`, the log file will be rotated at the start of the application.
 
 ### Example Usage
 

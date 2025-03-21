@@ -2,43 +2,41 @@
 
 set -e
 
-RCLONE_LOG_FILE="/logs/rclone.log"
 CRON_LOG_FILE="/logs/cron.log"
 WORKING_JSON="/working/config.json"
 LOG_MAX_LOG_SIZE="10485760"
 schedule_index="$1"
 stats_log_level="NOTICE"
+log_level_cron="info"
 
 # Function to return debug messages based on the debug level
 log_debug() {
     local level="$1"
     local message="$2"
 
-    # Check if LOG_LEVEL
-    if [ "$LOG_LEVEL" = "debug" ] && [ "$level" = "debug" ]; then
-        message="[FINE]: $message"
-    elif ([ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ]) && [ "$level" = "info" ]; then
+    # Check if log_level_cron
+    if [ "$log_level_cron" = "debug" ] && [ "$level" = "debug" ]; then
         message="[DEBUG]: $message"
-    elif ([ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ] || [ "$LOG_LEVEL" = "notice" ])  && [ "$level" = "notice" ]; then
+    elif ([ "$log_level_cron" = "debug" ] || [ "$log_level_cron" = "info" ]) && [ "$level" = "info" ]; then
+        message="[INFO]: $message"
+    elif ([ "$log_level_cron" = "debug" ] || [ "$log_level_cron" = "info" ] || [ "$log_level_cron" = "notice" ])  && [ "$level" = "notice" ]; then
         message="[NOTICE]: $message"
-    elif ([ "$LOG_LEVEL" = "debug" ] || [ "$LOG_LEVEL" = "info" ] || [ "$LOG_LEVEL" = "notice" ] || [ "$LOG_LEVEL" = "error" ]) && [ "$level" = "error" ]; then
+    elif ([ "$log_level_cron" = "debug" ] || [ "$log_level_cron" = "info" ] || [ "$log_level_cron" = "notice" ] || [ "$log_level_cron" = "error" ]) && [ "$level" = "error" ]; then
         message="[ERROR]: $message"
     fi
     # Log to file
-    echo -e "$(date '+%Y-%m-%d %H:%M:%S') $message" | tee "$CRON_LOG_FILE"
+    echo -e "[cron_$schedule_index]$(date '+%Y-%m-%d %H:%M:%S') $message" | tee "$CRON_LOG_FILE"
 }
 
-# Record the start time
-start_time=$(date '+%Y-%m-%d %H:%M:%S')
-log_debug "info" "Starting rclone cron job for schedule index $schedule_index. Execution started at: $start_time"
-
 if [ -f "$WORKING_JSON" ]; then
-    # Extract LOG_LEVEL
+    # Extract log_level_cron
     if [ -z "$LOG_LEVEL" ]; then
-        LOG_LEVEL=$(jq -r '.settings.log.level' "$WORKING_JSON")
-        log_debug "info" "Loaded LOG_LEVEL: $LOG_LEVEL"
+        log_level_cron=$(jq -r '.settings.log.level' "$WORKING_JSON")
+        log_debug "info" "Loaded log_level_cron: $log_level_cron"
         # Set stats log level for rClone stats
-        stats_log_level=$(echo "$LOG_LEVEL" | tr '[:lower:]' '[:upper:]')
+        stats_log_level=$(echo "$log_level_cron" | tr '[:lower:]' '[:upper:]')
+    else
+        log_level_cron=$LOG_LEVEL
     fi
     
     # Extract RCLONE_CONFIG
@@ -53,9 +51,14 @@ if [ -f "$WORKING_JSON" ]; then
     fi
 fi
 
-# Set LOG_LEVEL if not set
-if [ -z "$LOG_LEVEL" ] || [ "$LOG_LEVEL" == "null" ]; then
-    LOG_LEVEL="notice"
+# Record the start time
+start_time=$(date '+%Y-%m-%d %H:%M:%S')
+log_debug "info" "Starting rclone cron job for schedule index $schedule_index. Execution started at: $start_time"
+
+
+# Set log_level_cron if not set
+if [ -z "$log_level_cron" ] || [ "$log_level_cron" == "null" ]; then
+    log_level_cron="notice"
 fi
 
 # Set RCLONE_CONFIG if not set
@@ -83,32 +86,40 @@ if [ -f "$WORKING_JSON" ]; then
 
     log_debug "notice" "Running commands for schedule $schedule."
 
-    # Process each command
+    # Processing each command
     echo "$commands" | while IFS= read -r command_obj; do
-        # Extract command, command flags, local_path, and remote_path
+        # Extract command details
         command=$(echo "$command_obj" | jq -r '.command // empty')
         command_flags=$(echo "$command_obj" | jq -r '.command_flags // empty')
         local_path=$(echo "$command_obj" | jq -r '.local_path // empty')
         remote_path=$(echo "$command_obj" | jq -r '.remote_path // empty')
 
-        # Assuming command_flags is already defined earlier in your script
-        # Remove -v and --verbose from the beginning or with leading space
+        # Prepare command_flags with necessary modifications (if applicable)
         command_flags=$(echo "$command_flags" | sed 's/^\(-v\|-vv\|--verbose\)\s*//; s/\s*\(-v\|-vv\|--verbose\)\s*/ /g')
 
-        # Trim any extra spaces that may have been left after removals
-        command_flags=$(echo "$command_flags" | sed 's/^\s*//; s/\s*$//')
-
-        if [[ "$command" == "rclone"* ]]; then
+        # If the command is an rclone command
+        if [[ "$command" == *rclone* ]]; then
             command_flags+=" --log-file=$RCLONE_LOG_FILE --log-level=$stats_log_level --log-format=date,time,UTC --config=$RCLONE_CONFIG --stats=1m0s --stats-log-level=INFO --stats-one-line"
         fi
 
-        # Check for the first pipe "|" in the command
-        if [[ "$command" == *\|* ]]; then
-            # Insert command flags before the first "|"
-            command="$(echo "$command" | sed -E "s/([^|]*)\|(.*)/\1$command_flags \|\2/")"
+        # Split the command into two parts by the first pipe "|"
+        IFS='|' read -ra parts <<< "$command"
+        
+        # Trim any whitespace from the first part
+        first_part="${parts[0]}"
+        first_part=$(echo "$first_part" | xargs)  # Trim leading/trailing spaces
+
+        # Combine the first part with command_flags
+        first_part_with_flags="$first_part $command_flags"
+
+        # Recombine back with the second part if it exists
+        if [[ ${#parts[@]} -gt 1 ]]; then
+            second_part="${parts[1]}"
+            second_part=$(echo "$second_part" | xargs)  # Trim leading/trailing spaces
+            command="$first_part_with_flags | $second_part"
         else
-            # Add the command flags as part of the final command
-            command="$command $command_flags"
+            # No second part, just use the first part with flags
+            command="$first_part_with_flags"
         fi
         
         # If local path and remote path are set, include them
@@ -122,6 +133,9 @@ if [ -f "$WORKING_JSON" ]; then
             log_debug "notice"  "Running command: $command"
             eval "$command"
         fi
+        
+        # Prepare to run or pending execution...
+        echo "Prepared command: $command"
     done
 else
     log_debug "error" "Configuration file $WORKING_JSON not found."
@@ -131,8 +145,12 @@ fi
 # Record the finish time
 finish_time=$(date '+%Y-%m-%d %H:%M:%S')
 
-# Calculate the time difference
-time_difference=$((finish_time - start_time))
+# Convert both date-time strings into Unix timestamps
+start_timestamp=$(date -d "$start_time" +%s)
+finish_timestamp=$(date -d "$finish_time" +%s)
+
+# Calculate the time difference in seconds
+time_difference=$((finish_timestamp - start_timestamp))
 
 # Convert seconds into a human-readable format (e.g., HH:MM:SS)
 hours=$((time_difference / 3600))

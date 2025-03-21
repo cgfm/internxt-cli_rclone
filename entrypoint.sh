@@ -83,6 +83,7 @@ declare -A env_var_map=(
     ["LOG_FILE_COUNT"]="log.file_count"
     ["LOG_LEVEL"]="log.level"
     ["LOG_MAX_LOG_SIZE"]="log.max_log_size"
+    ["LOG_ROTATE_AT_START"]="log.rotate_at_start"
     ["ROOT_CA"]="root_ca"
 )
 
@@ -95,21 +96,22 @@ fi
 WORKING_JSON="/working/config.json"
 WORKING_HTPASSWD="/working/.htpasswd"
 
+# Create directories if they do not exist
+mkdir -p /data/internxt/certs /data/rclone /logs/internxt /logs/rclone /working
+mkdir -p "$(dirname "$WEBDAV_CONFIG_PATH")"  # Ensure the directory exists
+
 # Array of log files to rotate
 LOCAL_LOG_FILES=(
     "/logs/cron.log"
-    "/logs/rclone.log"
+    "/logs/rclone/rclone.log"
     "/logs/internxt/internxt-cli-error.log"
     "/logs/internxt/internxt-webdav-error.log"
     "/logs/internxt/internxt-cli-combined.log"
     "/logs/internxt/internxt-webdav-combined.log"
 )
 
-touch /logs/cron.log /logs/rclone.log
+touch /logs/cron.log /logs/rclone/rclone.log
 
-# Create directories if they do not exist
-mkdir -p /data/internxt/certs /data/rclone /logs/internxt /working
-mkdir -p "$(dirname "$WEBDAV_CONFIG_PATH")"  # Ensure the directory exists
 
 # Check if the initialization has been done
 if [ ! -f /data/init_done ]; then
@@ -143,7 +145,7 @@ fi
 max_log_size=${LOG_MAX_LOG_SIZE:-10485760}
 
 # Check the size of the log file only if LOG_MAX_LOG_SIZE is set
-if [ "$max_log_size" -le 0 ]; then
+if [ "$max_log_size" -le 0 ] || [ "${LOG_ROTATE_AT_START:-false}" = "true" ]; then
     # Rotate logs
     for log_file in "${LOCAL_LOG_FILES[@]}"; do
         rotate_logs "$log_file"
@@ -378,7 +380,7 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
         --rc-web-gui-update \
         --rc-addr :$RCLONE_WEB_GUI_PORT \
         --config $RCLONE_CONFIG \
-        --log-file /logs/rclone.log \
+        --log-file /logs/rclone/rclone.log \
         --log-format date,time,UTC \
         $RCLONE_WEB_GUI_EXTRA_PARAMS"
     
@@ -625,5 +627,15 @@ while true; do
     fi
     sleep 60  # Adjust the sleep time as needed
 done &
+
+inotifywait -m /logs/rclone -e create |
+    while read dir action file; do
+        # Remove the prefix "rclone_" and the suffix ".log" to get the schedule
+        # This assumes the filename is consistently formatted
+        schedule="${file#rclone_}"
+        schedule="${schedule%.log}"
+
+        tail_with_prefix "$file" "rclone" &  # Tail log file with prefix
+    done
 # Wait indefinitely to keep the script running
 wait
