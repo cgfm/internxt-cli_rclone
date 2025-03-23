@@ -630,11 +630,6 @@ done &
 
 inotifywait -m /logs/rclone -e create |
     while read dir action file; do
-        # Remove the prefix "rclone_" and the suffix ".log" to get the schedule
-        # This assumes the filename is consistently formatted
-        schedule="${file#rclone_}"
-        schedule="${schedule%.log}"
-
         tail_with_prefix "$file" "rclone" &  # Tail log file with prefix
     done
 # Wait indefinitely to keep the script running
