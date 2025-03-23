@@ -5,9 +5,9 @@ set -e
 CRON_LOG_FILE="/logs/cron.log"
 WORKING_JSON="/working/config.json"
 LOG_MAX_LOG_SIZE="10485760"
-schedule_index="$1"
 stats_log_level="NOTICE"
 log_level_cron="info"
+DEBUG=false
 
 # Function to return debug messages based on the debug level
 log_debug() {
@@ -27,6 +27,23 @@ log_debug() {
     # Log to file
     echo -e "[cron_$schedule_index]$(date '+%Y-%m-%d %H:%M:%S') $message" | tee "$CRON_LOG_FILE"
 }
+
+# Check if the schedule index is provided as an argument
+if [ $# -eq 0 ]; then
+    log_debug "error" "Wrong Usage: $0 <schedule_index> [--debug]"
+    exit 1
+fi
+
+schedule_index="$1"
+
+while [[ "$1" != "" ]]; do
+    case $1 in
+        --debug )        DEBUG=true
+                         ;;
+    esac
+    shift
+done
+
 
 if [ -f "$WORKING_JSON" ]; then
     # Extract log_level_cron
@@ -66,12 +83,6 @@ if [ -z "$RCLONE_CONFIG" ] || [ "$RCLONE_CONFIG" == "null" ]; then
     RCLONE_CONFIG="/config/rclone.conf"
 fi
 
-# Check if the schedule index is provided as an argument
-if [ $# -ne 1 ]; then
-    log_debug "error" "Wrong Usage: $0 <schedule_index>"
-    exit 1
-fi
-
 # Read the JSON file and execute commands for the specified schedule index
 if [ -f "$WORKING_JSON" ]; then
     # Extract the commands for the specified schedule index
@@ -97,45 +108,77 @@ if [ -f "$WORKING_JSON" ]; then
         # Prepare command_flags with necessary modifications (if applicable)
         command_flags=$(echo "$command_flags" | sed 's/^\(-v\|-vv\|--verbose\)\s*//; s/\s*\(-v\|-vv\|--verbose\)\s*/ /g')
 
-        # If the command is an rclone command
-        if [[ "$command" == *rclone* ]]; then
-            command_flags+=" --log-file=$RCLONE_LOG_FILE --log-level=$stats_log_level --log-format=date,time,UTC --config=$RCLONE_CONFIG --stats=1m0s --stats-log-level=INFO --stats-one-line"
-        fi
+        rclone_cron_log_file="/logs/rclone/rclone_$schedule_index.log"
+        rclone_command_flags=" --log-file=$rclone_cron_log_file --log-level=$stats_log_level --log-format=date,time,UTC --config=$RCLONE_CONFIG --stats=1m0s --stats-log-level=INFO --stats-one-line"
 
-        # Split the command into two parts by the first pipe "|"
-        IFS='|' read -ra parts <<< "$command"
-        
-        # Trim any whitespace from the first part
-        first_part="${parts[0]}"
-        first_part=$(echo "$first_part" | xargs)  # Trim leading/trailing spaces
+        final_command=""
+        logical_parts=()
+        while IFS= read -r line; do
+            logical_parts+=("$line")
+        done < <(echo "$command" | awk -F '&&' '{ for(i=1; i<=NF; i++) print $i }')
 
-        # Combine the first part with command_flags
-        first_part_with_flags="$first_part $command_flags"
+        # Process each logical part
+        for j in "${!logical_parts[@]}"; do
+            part="${logical_parts[j]}"
+            part="${part#"${part%%[![:space:]]*}"}"
+            part="${part%"${part##*[![:space:]]}"}"
 
-        # Recombine back with the second part if it exists
-        if [[ ${#parts[@]} -gt 1 ]]; then
-            second_part="${parts[1]}"
-            second_part=$(echo "$second_part" | xargs)  # Trim leading/trailing spaces
-            command="$first_part_with_flags | $second_part"
-        else
-            # No second part, just use the first part with flags
-            command="$first_part_with_flags"
-        fi
-        
+            # Split the command into two parts by the first pipe "|"
+            pipe_parts=()
+            IFS='|' read -ra pipe_parts <<< "$part"
+
+            # Loop over each part and add command_flags to any rclone command part
+            for i in "${!pipe_parts[@]}"; do
+                pipe_part="${pipe_parts[i]}"
+                pipe_part="${pipe_part#"${pipe_part%%[![:space:]]*}"}"
+                pipe_part="${pipe_part%"${pipe_part##*[![:space:]]}"}"
+
+                # Check if the current part contains 'rclone'
+                if [[ "$pipe_part" == "rclone "* ]]; then
+                    # Append command_flags to the rclone command part
+                    pipe_parts[i]="$pipe_part $rclone_command_flags"
+                else
+                    pipe_parts[i]="$pipe_part"
+                fi
+            done
+
+            part=""
+            for i in "${!pipe_parts[@]}"; do
+                if [[ $i -gt 0 ]]; then
+                    part+=" | "
+                fi
+                part+="${pipe_parts[i]}"
+            done
+            logical_parts[j]="$part"
+        done
+
+        # Recombine the logical parts without losing whitespace
+        command=""
+        for j in "${!logical_parts[@]}"; do
+            if [[ $j -gt 0 ]]; then
+                command+=" && "
+            fi
+            command+="${logical_parts[j]}"
+        done
+
+        # append the provided flags to the command
+        command+=" $command_flags"
+
         # If local path and remote path are set, include them
         if [[ -n "$local_path" && -n "$remote_path" ]]; then
             echo "[$(date '+%H:%M')] Schedule #$schedule_index $schedule running $command for $local_path and $remote_path" > "/tmp/cron.$schedule_index.lock"
             log_debug "notice" "Running command: $command $local_path $remote_path"
-            eval "$command $local_path $remote_path"
+            if [ ! DEBUG ]; then
+                eval "$command $local_path $remote_path"
+            fi
         elif [[ -n "$command" ]]; then
             # If only command is present, run it with flags
             echo "[$(date '+%H:%M')] Schedule #$schedule_index $schedule running$command" > "/tmp/cron.$schedule_index.lock"
             log_debug "notice"  "Running command: $command"
-            eval "$command"
+            if [ ! DEBUG ]; then
+                eval "$command"
+            fi
         fi
-        
-        # Prepare to run or pending execution...
-        echo "Prepared command: $command"
     done
 else
     log_debug "error" "Configuration file $WORKING_JSON not found."
