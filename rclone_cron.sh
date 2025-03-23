@@ -25,7 +25,7 @@ log_debug() {
         message="[ERROR]: $message"
     fi
     # Log to file
-    echo -e "[cron_$schedule_index]$(date '+%Y-%m-%d %H:%M:%S') $message" | tee "$CRON_LOG_FILE"
+    echo -e "[cron_$schedule_index]$(date '+%Y-%m-%d %H:%M:%S') $message" | tee -a "$CRON_LOG_FILE"
 }
 
 # Check if the schedule index is provided as an argument
@@ -39,6 +39,7 @@ schedule_index="$1"
 while [[ "$1" != "" ]]; do
     case $1 in
         --debug )        DEBUG=true
+                         LOG_LEVEL="debug"
                          ;;
     esac
     shift
@@ -104,6 +105,10 @@ if [ -f "$WORKING_JSON" ]; then
         command_flags=$(echo "$command_obj" | jq -r '.command_flags // empty')
         local_path=$(echo "$command_obj" | jq -r '.local_path // empty')
         remote_path=$(echo "$command_obj" | jq -r '.remote_path // empty')
+        log_debug "debug" "Command: $command"
+        log_debug "debug" "Command Flags: $command_flags"
+        log_debug "debug" "Local Path: $local_path"
+        log_debug "debug" "Remote Path: $remote_path"
 
         # Prepare command_flags with necessary modifications (if applicable)
         command_flags=$(echo "$command_flags" | sed 's/^\(-v\|-vv\|--verbose\)\s*//; s/\s*\(-v\|-vv\|--verbose\)\s*/ /g')
@@ -168,14 +173,14 @@ if [ -f "$WORKING_JSON" ]; then
         if [[ -n "$local_path" && -n "$remote_path" ]]; then
             echo "[$(date '+%H:%M')] Schedule #$schedule_index $schedule running $command for $local_path and $remote_path" > "/tmp/cron.$schedule_index.lock"
             log_debug "notice" "Running command: $command $local_path $remote_path"
-            if [ ! DEBUG ]; then
+            if [ "$DEBUG" = false ]; then
                 eval "$command $local_path $remote_path"
             fi
         elif [[ -n "$command" ]]; then
             # If only command is present, run it with flags
             echo "[$(date '+%H:%M')] Schedule #$schedule_index $schedule running$command" > "/tmp/cron.$schedule_index.lock"
             log_debug "notice"  "Running command: $command"
-            if [ ! DEBUG ]; then
+            if [ "$DEBUG" = false ]; then
                 eval "$command"
             fi
         fi
@@ -206,4 +211,5 @@ duration=$(printf "%02d:%02d:%02d\n" $hours $minutes $seconds)
 log_debug "notice" "Finished rclone cron job for schedule index $schedule_index after $duration."
 log_debug "info" "Execution finished at: $finish_time"
 
+# Remove the lock file since flock semms to sometimes didn't remove it
 rm "/tmp/cron.$schedule_index.lock"
