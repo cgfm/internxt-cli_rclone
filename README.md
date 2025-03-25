@@ -3,7 +3,7 @@
 This repository contains a Docker setup to run the Internxt CLI with rclone support. It allows you to synchronize files between your local filesystem and Internxt using WebDAV.
 
 ## Development ##
-This is still in development and not ready for production use.
+This is still in development be patient in production use.
 
 ## Environment Variables
 
