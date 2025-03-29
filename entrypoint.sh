@@ -382,11 +382,10 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
         --config $RCLONE_CONFIG \
         --log-file /logs/rclone/rclone.log \
         --log-format date,time,UTC \
-        $RCLONE_WEB_GUI_EXTRA_PARAMS"
+        $RCLONE_WEB_GUI_EXTRA_PARAMS &"
     
     log_debug "info" "Starting rclone with command:\n$rclone_command"
-    OUTPUT=$(eval "$rclone_command &" 2>&1)  # Execute the rclone command in the background
-    log_debug "debug" "$OUTPUT"
+    eval "$rclone_command" # Execute the rclone command in the background
 fi
 
 # Handle TOTP for two-factor authentication
