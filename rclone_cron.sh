@@ -117,6 +117,7 @@ if [ -f "$WORKING_JSON" ]; then
         rclone_command_flags=" --log-file=$rclone_cron_log_file --log-level=$stats_log_level --log-format=date,time,UTC --config=$RCLONE_CONFIG --stats=1m0s --stats-log-level=INFO --stats-one-line"
 
         final_command=""
+
         logical_parts=()
         while IFS= read -r line; do
             logical_parts+=("$line")

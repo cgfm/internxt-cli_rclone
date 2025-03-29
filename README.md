@@ -413,6 +413,64 @@ docker run -e LOG_LEVEL="info" -e LOG_LOGFILE_COUNT="5" -e LOG_MAX_LOG_SIZE="209
 
 This command sets the log level to debug, keeps up to 5 log files, and limits each log file to 20MB.
 
+## Handling large amounts of files
+There might be a constallation where you have lagre amounts of files to sync. This can cause the sync to take a long time. To avoid this, you can use the `--files-from` flag to only sync the files that have changed. This can be done by using the `comm` command to compare the source and destination directories. Here’s an example:
+
+```json
+    {
+      "schedule": [
+                "*/30 0-2 * * *",
+                "*/30 8-23 * * *"
+          ],
+      "commands": [
+        {
+          "command": "rclone lsf --files-only -R /media/audiobookshelf/audiobooks | sort > /data/src_audiobooks"
+        },
+        {
+          "command": "[ ! -f /data/dst_audiobooks ] && rclone lsf --files-only -R Internxt:Audiobooks | sort > /data/dst_audiobooks"
+        },
+        {
+          "command": "comm -23 /data/src_audiobooks /data/dst_audiobooks > /data/need-to-transfer"
+        },
+        {
+          "command": "rclone copy",
+          "command_flags": "--files-from /data/need-to-transfer --no-traverse --retries 3",
+          "local_path": "/media/audiobookshelf/audiobooks",
+          "remote_path": "Internxt:Audiobooks"
+        }
+      ]
+    },
+    {
+      "schedule": "0 3 * * *",
+      "commands": [
+        {
+          "command": "rclone lsf --files-only -R /media/audiobookshelf/audiobooks | sort > /data/src_audiobooks"
+        },
+        {
+          "command": "rclone lsf --files-only -R Internxt:Audiobooks | sort > /data/dst_audiobooks"
+        },
+        {
+          "command": "comm -23 /data/src_audiobooks /data/dst_audiobooks > /data/need-to-transfer"
+        },
+        {
+          "command": "comm -13 /data/src_audiobooks /data/dst_audiobooks > /data/need-to-delete"
+        },
+        {
+          "command": "rclone delete",
+          "command_flags": "--dry-run --files-from /data/need-to-delete --no-traverse --retries 3",
+          "local_path": "/media/audiobookshelf/audiobooks",
+          "remote_path": "Internxt:Audiobooks"
+        },
+        {
+          "command": "rclone copy",
+          "command_flags": "--files-from /data/need-to-transfer --no-traverse --retries 3",
+          "local_path": "/media/audiobookshelf/audiobooks",
+          "remote_path": "Internxt:Audiobooks"
+        }
+      ]
+    }
+```
+
 ## License
 
 This code was generated with the help of Workik AI. The licensing model for the code generated with Workik AI is set to be permissive, allowing for modification and redistribution.

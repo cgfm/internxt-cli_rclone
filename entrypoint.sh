@@ -352,7 +352,7 @@ OUTPUT=""
 if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
     log_debug "notice" "Configuring rclone webgui..."
     
-    rclone_command="rclone rc"  # Start the rclone daemon command
+    rclone_command="rclone rcd"  # Start the rclone daemon command
 
     # Add --rc-user and --rc-pass only if both are set
     if [ -n "$RCLONE_WEB_GUI_SSL_CERT" ] && [ -n "$RCLONE_WEB_GUI_SSL_KEY" ]; then
