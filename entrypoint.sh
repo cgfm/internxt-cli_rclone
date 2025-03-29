@@ -385,8 +385,7 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
         $RCLONE_WEB_GUI_EXTRA_PARAMS &"
     
     log_debug "info" "Starting rclone with command:\n$rclone_command"
-    eval "$rclone_command" &  # Execute the rclone command in the background
-
+    eval "$rclone_command" # Execute the rclone command in the background
 fi
 
 # Handle TOTP for two-factor authentication
