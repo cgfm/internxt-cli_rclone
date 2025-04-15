@@ -374,8 +374,8 @@ The application includes a robust logging mechanism that allows you to control t
 - **JSON Key**: `log.level`
 - **Description**: This variable sets the log level for the application. The default log level is `notice`, which means that only informational messages and above (like warnings and errors) will be logged. 
 - **Possible Values**:
-  - `fine`: Very detailed logging, useful for debugging.
-  - `debug`: Less detailed than `fine`, but still verbose.
+  - `debug`: Very detailed logging, useful for debugging.
+  - `info`: Less detailed than `debug`, but still verbose.
   - `notice`: General information about the application's operations (default).
   - `error`: Only error messages are logged.
   
