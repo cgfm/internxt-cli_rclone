@@ -42,6 +42,7 @@ The following environment variables can be set when running the Docker container
 | `LOG_LEVEL`                         |  `log.level`                  | Set the log level for the application. Default is `notice`. See [Log Level](#log-level) for more information.    |
 | `LOG_LOGFILE_COUNT`                  | `log.file_count`          | Set the number of log files to keep. Default is `3`. If its set to a negative value it will keep all log files. See [Log File Management](#log-file-management) for more information.        |
 | `LOG_MAX_LOG_SIZE`                   | `log.max_log_size`          | Set the maximum size of a single log file in bytes. Default is `10485760` (10MB). If its set to a negative value the log file size will not be limited. Instead at each startup the log file will be rotated. See [Log File Management](#log-file-management) for more information. |
+| `LOG_ROTATE_AT_START`                | `log.rotate_at_start`       | If set to `true`, the log files will be rotated at startup. Default is `false`. See [Log File Management](#log-file-management) for more information. |
 | `STOPATSTART`                       |                               | If set to `true`, the container will stop after the initial synchronization. Before starting any services. Default is `false`. This is just for debugging purposes.                        |
 
 ## Docker Image
@@ -206,7 +207,7 @@ command 5
 The cron jobs and commands you define are stored at runtime in a JSON file located at `/working/rclone_cron.json`. You can provide your own JSON file to customize the cron jobs and commands by setting the `CONFIG_FILE` environment variable to the path of your JSON file or by simply storing your JSON file at `/config/rclone_cron.json`. The structure of this JSON file allows for dynamic command execution based on the defined environment variables and the `CONFIG_FILE` file. You can Use the ENV Vars and the JSON file both at the same time. they will be combined in the `/working/rclone_cron.json` file. More about the cron jobs and commands in the [Building and Executing Cron Commands](#custom-cron-command) section.
 
 - **cron_jobs**: This is an array containing objects for each scheduled job. Each object need to have:
-  - **schedule**: The cron schedule for the job.
+  - **schedule**: The cron schedule for the job. This can also be an array of schedules if you want to run the same commands at multiple times.
   - **commands**: An array of command objects to execute at the specified schedule.
 
 ### Settings
@@ -220,7 +221,10 @@ All settings listed in the ENV Vars section can be set in the JSON file as well.
 {
   "cron_jobs": [
     {
-      "schedule": "*/15 * * * *",
+      "schedule": [
+        "*/15 0-2 * * *",
+        "*/15 5-23 * * *",
+      ],
       "commands": [
         {
           "command": "rclone copy",
@@ -395,6 +399,10 @@ The application provides options to manage log files, including the number of fi
 
   When the log file exceeds the specified size, it will be rotated. For example, if you have set the maximum size to `10MB` and the logfile count to `3`, the application will keep the original log file and up to three older versions. Each of these can be up to `10MB` in size, leading to a potential total log size of `4 x 10MB = 40MB`.
 
+- **Environment Variable**: `LOG_ROTATE_AT_START`
+- **JSON Key**: `log.rotate_at_start`
+- **Description**: This variable determines whether to rotate the log file at the start of the application. The default value is `false`. If set to `true`, the log file will be rotated at the start of the application.
+
 ### Example Usage
 
 To configure logging, you can set the environment variables when running the application. Here’s an example:
@@ -404,6 +412,64 @@ docker run -e LOG_LEVEL="info" -e LOG_LOGFILE_COUNT="5" -e LOG_MAX_LOG_SIZE="209
 ```
 
 This command sets the log level to debug, keeps up to 5 log files, and limits each log file to 20MB.
+
+## Handling large amounts of files
+There might be a constallation where you have lagre amounts of files to sync. This can cause the sync to take a long time. To avoid this, you can use the `--files-from` flag to only sync the files that have changed. This can be done by using the `comm` command to compare the source and destination directories. Here’s an example:
+
+```json
+    {
+      "schedule": [
+                "*/30 0-2 * * *",
+                "*/30 8-23 * * *"
+          ],
+      "commands": [
+        {
+          "command": "rclone lsf --files-only -R /media/audiobookshelf/audiobooks | sort > /data/src_audiobooks"
+        },
+        {
+          "command": "[ ! -f /data/dst_audiobooks ] && rclone lsf --files-only -R Internxt:Audiobooks | sort > /data/dst_audiobooks"
+        },
+        {
+          "command": "comm -23 /data/src_audiobooks /data/dst_audiobooks > /data/need-to-transfer"
+        },
+        {
+          "command": "rclone copy",
+          "command_flags": "--files-from /data/need-to-transfer --no-traverse --retries 3",
+          "local_path": "/media/audiobookshelf/audiobooks",
+          "remote_path": "Internxt:Audiobooks"
+        }
+      ]
+    },
+    {
+      "schedule": "0 3 * * *",
+      "commands": [
+        {
+          "command": "rclone lsf --files-only -R /media/audiobookshelf/audiobooks | sort > /data/src_audiobooks"
+        },
+        {
+          "command": "rclone lsf --files-only -R Internxt:Audiobooks | sort > /data/dst_audiobooks"
+        },
+        {
+          "command": "comm -23 /data/src_audiobooks /data/dst_audiobooks > /data/need-to-transfer"
+        },
+        {
+          "command": "comm -13 /data/src_audiobooks /data/dst_audiobooks > /data/need-to-delete"
+        },
+        {
+          "command": "rclone delete",
+          "command_flags": "--dry-run --files-from /data/need-to-delete --no-traverse --retries 3",
+          "local_path": "/media/audiobookshelf/audiobooks",
+          "remote_path": "Internxt:Audiobooks"
+        },
+        {
+          "command": "rclone copy",
+          "command_flags": "--files-from /data/need-to-transfer --no-traverse --retries 3",
+          "local_path": "/media/audiobookshelf/audiobooks",
+          "remote_path": "Internxt:Audiobooks"
+        }
+      ]
+    }
+```
 
 ## License
 

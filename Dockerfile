@@ -5,7 +5,7 @@ ENV STOPATSTART="false"
 ENV TZ=Etc/UTC
 
 RUN apt-get update && \
-    apt-get install -y curl gnupg2 tzdata jq gzip unzip cron apache2-utils && \
+    apt-get install -y curl gnupg2 tzdata jq gzip unzip cron apache2-utils inotify-tools && \
     curl -fsSL https://deb.nodesource.com/setup_23.x | bash - && \
     apt-get install -y nodejs && \
     apt-get clean && \
@@ -15,11 +15,16 @@ RUN curl https://rclone.org/install.sh | bash
 
 # Install the Internxt CLI
 RUN npm install -g @internxt/cli
-RUN npm update -g axios
 
 # Create directories for the rclone configuration and SSL certs
-RUN mkdir -p /logs/internxt /config/internxt/certs /root/.internxt-cli /root/.cache /data/internxt/certs /data/rclone && \
-    touch /logs/rclone.log && \
+RUN mkdir -p /logs/internxt \
+             /logs/rclone \
+             /config/internxt/certs \
+             /root/.internxt-cli \
+             /root/.cache \
+             /data/internxt/certs \
+             /data/rclone && \
+    touch /logs/rclone/rclone.log && \
     touch /logs/cron.log 
 
 # Set the timezone

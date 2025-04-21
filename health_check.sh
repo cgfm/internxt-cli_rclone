@@ -109,14 +109,41 @@ if [ "$total_jobs" -gt 0 ]; then
     # Verify that the cron jobs are registered in crontab
     for ((i=0; i<total_jobs; i++)); do
         # Extract the schedule for the current job
-        schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
+        if jq -e ".cron_jobs[$i].schedule | type == \"array\"" "$WORKING_JSON" > /dev/null; then
+            schedules_array=$(jq -r ".cron_jobs[$i].schedule[]" "$WORKING_JSON")
+            while IFS= read -r schedule; do
+                # Check if the schedule exists in crontab
+                if ! crontab -l | grep -q "$schedule"; then
+                    error_exit "Cron job $i with schedule '$schedule' is not found in crontab."
+                fi
+            done <<< "$schedules_array"
+        else
+            schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
         
-        # Check if the schedule exists in crontab
-        if ! crontab -l | grep -q "$schedule"; then
-            error_exit "Cron job $i with schedule '$schedule' is not found in crontab."
+            # Check if the schedule exists in crontab
+            if ! crontab -l | grep -q "$schedule"; then
+                error_exit "Cron job $i with schedule '$schedule' is not found in crontab."
+            fi
         fi
     done
 fi
 # If all checks pass
-echo "Health check passed."
+# Initialize an empty variable to hold all contents
+all_contents=""
+
+# Loop through each file that matches the pattern and concatenate the contents
+for lock_file in /tmp/cron.*.lock; do
+    if [ -f "$lock_file" ]; then  # Check if the file exists
+        # If contents are empty, just assign the file contents to it, otherwise concatenate with a separator
+        if [ -z "$all_contents" ]; then
+            all_contents=$(cat "$lock_file")  # Concatenate contents
+        else
+            all_contents+="; " 
+            all_contents+=$(cat "$lock_file")  # Concatenate contents
+        fi
+    fi
+done
+
+# Output the concatenated contents (you can change this to save to a file if needed)
+echo "Health check passed. $all_contents"
 exit 0

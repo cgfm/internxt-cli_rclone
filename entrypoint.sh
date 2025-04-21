@@ -83,6 +83,7 @@ declare -A env_var_map=(
     ["LOG_FILE_COUNT"]="log.file_count"
     ["LOG_LEVEL"]="log.level"
     ["LOG_MAX_LOG_SIZE"]="log.max_log_size"
+    ["LOG_ROTATE_AT_START"]="log.rotate_at_start"
     ["ROOT_CA"]="root_ca"
 )
 
@@ -95,21 +96,22 @@ fi
 WORKING_JSON="/working/config.json"
 WORKING_HTPASSWD="/working/.htpasswd"
 
+# Create directories if they do not exist
+mkdir -p /data/internxt/certs /data/rclone /logs/internxt /logs/rclone /working
+mkdir -p "$(dirname "$WEBDAV_CONFIG_PATH")"  # Ensure the directory exists
+
 # Array of log files to rotate
 LOCAL_LOG_FILES=(
     "/logs/cron.log"
-    "/logs/rclone.log"
+    "/logs/rclone/rclone.log"
     "/logs/internxt/internxt-cli-error.log"
     "/logs/internxt/internxt-webdav-error.log"
     "/logs/internxt/internxt-cli-combined.log"
     "/logs/internxt/internxt-webdav-combined.log"
 )
 
-touch /logs/cron.log /logs/rclone.log
+touch /logs/cron.log /logs/rclone/rclone.log
 
-# Create directories if they do not exist
-mkdir -p /data/internxt/certs /data/rclone /logs/internxt /working
-mkdir -p "$(dirname "$WEBDAV_CONFIG_PATH")"  # Ensure the directory exists
 
 # Check if the initialization has been done
 if [ ! -f /data/init_done ]; then
@@ -143,7 +145,7 @@ fi
 max_log_size=${LOG_MAX_LOG_SIZE:-10485760}
 
 # Check the size of the log file only if LOG_MAX_LOG_SIZE is set
-if [ "$max_log_size" -le 0 ]; then
+if [ "$max_log_size" -le 0 ] || [ "${LOG_ROTATE_AT_START:-false}" = "true" ]; then
     # Rotate logs
     for log_file in "${LOCAL_LOG_FILES[@]}"; do
         rotate_logs "$log_file"
@@ -350,7 +352,7 @@ OUTPUT=""
 if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
     log_debug "notice" "Configuring rclone webgui..."
     
-    rclone_command="rclone rc"  # Start the rclone daemon command
+    rclone_command="rclone rcd"  # Start the rclone daemon command
 
     # Add --rc-user and --rc-pass only if both are set
     if [ -n "$RCLONE_WEB_GUI_SSL_CERT" ] && [ -n "$RCLONE_WEB_GUI_SSL_KEY" ]; then
@@ -378,13 +380,12 @@ if [ "${RCLONE_WEB_GUI_SERVE:-true}" = "true" ]; then
         --rc-web-gui-update \
         --rc-addr :$RCLONE_WEB_GUI_PORT \
         --config $RCLONE_CONFIG \
-        --log-file /logs/rclone.log \
+        --log-file /logs/rclone/rclone.log \
         --log-format date,time,UTC \
-        $RCLONE_WEB_GUI_EXTRA_PARAMS"
+        $RCLONE_WEB_GUI_EXTRA_PARAMS &"
     
     log_debug "info" "Starting rclone with command:\n$rclone_command"
-    OUTPUT=$(eval "$rclone_command &" 2>&1)  # Execute the rclone command in the background
-    log_debug "debug" "$OUTPUT"
+    eval "$rclone_command" # Execute the rclone command in the background
 fi
 
 # Handle TOTP for two-factor authentication
@@ -526,10 +527,21 @@ if [ -f "$WORKING_JSON" ]; then
         # Iterate over each job in the JSON file
         for ((i=0; i<total_schedules; i++)); do
             # Extract the schedule for the current job
-            schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
-            # Register the cron job in crontab
-            echo "$schedule flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$i\"" >> /var/spool/cron/root
-            log_debug "info" "Added cron job for schedule '$schedule' at index $i."
+            if jq -e ".cron_jobs[$i].schedule | type == \"array\"" "$WORKING_JSON" > /dev/null; then
+                schedules_array=$(jq -r ".cron_jobs[$i].schedule[]" "$WORKING_JSON")
+                
+                while IFS= read -r schedule; do
+                    # Register the cron job in crontab
+                    echo "$schedule flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$i\"" >> /var/spool/cron/root
+                    log_debug "info" "Added cron job for schedule '$schedule' at index $i."
+                done <<< "$schedules_array"
+            else
+                schedule=$(jq -r ".cron_jobs[$i].schedule" "$WORKING_JSON")
+
+                # Register the cron job in crontab
+                echo "$schedule flock -n /tmp/cron.$i.lock /usr/local/bin/rclone_cron.sh \"$i\"" >> /var/spool/cron/root
+                log_debug "info" "Added cron job for schedule '$schedule' at index $i."
+            fi
         done
         /usr/bin/crontab /var/spool/cron/root  # Load the new crontab
 
@@ -614,5 +626,10 @@ while true; do
     fi
     sleep 60  # Adjust the sleep time as needed
 done &
+
+inotifywait -m /logs/rclone -e create |
+    while read dir action file; do
+        tail_with_prefix "$file" "rclone" &  # Tail log file with prefix
+    done
 # Wait indefinitely to keep the script running
 wait
